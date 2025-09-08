@@ -9,7 +9,6 @@ module.exports = {
   jwtKey: process.env.JWT_KEY,
   allowInsecureConnections: true,
   sendErrorObj: true,
-  emailSendingRate: 14,
   verbose: 2,
   avoidCors: true,
 };
