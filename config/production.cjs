@@ -1,10 +1,14 @@
+const dotenv = require('dotenv');
+
+// Hace accesibles las variables de entorno
+dotenv.config();
+
 module.exports = {
-  dbConnectionUri: process.env.PROD_DB_CONNECTION_URI,
-  allowInsecureConnections: false,
-  sendErrorObj: false,
-  verbose: 1,
-  awsBucketAccess: process.env.AWS_BUCKET_ACCESS,
-  awsBucketSecret: process.env.AWS_BUCKET_SECRET,
-  bucketName: process.env.BUCKET_NAME,
-  avoidCors: false,
+  port: process.env.PORT || 3000,
+  dbConnectionUri: process.env.DEV_DB_CONNECTION_URI,
+  jwtKey: process.env.JWT_KEY,
+  allowInsecureConnections: true,
+  sendErrorObj: true,
+  verbose: 2,
+  avoidCors: true,
 };

@@ -5,6 +5,8 @@ import config from 'config';
 import indexRoutes from './routes/index.js';
 import connect from './db/connection.js';
 import getDirname from './utils/getDirname.js';
+import userRouter from './apiServices/user/user.route.js';
+import sessionRouter from './apiServices/session/session.route.js';
 
 const app = express();
 
@@ -21,5 +23,7 @@ app.use(express.json());
 app.use(express.static('./public'));
 
 app.use('/', indexRoutes);
+app.use('/api/user', userRouter);
+app.use('/api/session', sessionRouter);
 
 export default app;
