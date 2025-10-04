@@ -1,22 +1,23 @@
 import jwt from 'jsonwebtoken';
 import moment from 'moment';
 import config from 'config';
-import consts from '../utils/consts.js';
+import { generalConstants } from "../../shared/constants/general.js"
 
 const key = config.get('jwtKey');
 
 const signAccessToken = ({
-    userId, email, names, lastnames,
+    userId, deviceId, email, names, lastnames,
 }) => {
-    const expiresAt = moment().add(consts.tokenExpiration.access_hours_expiration, 'hour').unix();
+    const expiresAt = moment().add(generalConstants.tokenExpiration.access_hours_expiration, 'hour').unix();
     const token = jwt.sign(
         {
             userId,
+            deviceId,
             email,
             names,
             lastnames,
             exp: expiresAt,
-            type: consts.token.access,
+            type: generalConstants.token.access,
         },
         key,
     )
@@ -32,8 +33,8 @@ const signRegisterToken = ({
         lastname,
         email,
         sex,
-        exp: moment().add(consts.tokenExpiration.register_months_expiration, 'month').unix(),
-        type: consts.token.register,
+        exp: moment().add(generalConstants.tokenExpiration.register_months_expiration, 'month').unix(),
+        type: generalConstants.token.register,
     },
     key,
 );
@@ -46,8 +47,8 @@ const signRecoverPasswordToken = ({
         name,
         lastname,
         email,
-        exp: moment().add(consts.tokenExpiration.recover_hours_expiration, 'hour').unix(),
-        type: consts.token.recover,
+        exp: moment().add(generalConstants.tokenExpiration.recover_hours_expiration, 'hour').unix(),
+        type: generalConstants.token.recover,
     },
     key,
 );

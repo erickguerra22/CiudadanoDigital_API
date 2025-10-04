@@ -3,7 +3,7 @@ const validateBody = (...schemas) => async (req, res, next) => {
     await Promise.all(schemas?.map((schema) => schema.validate(req.body)));
     return next();
   } catch (err) {
-    if (req.uploadedFiles) deleteFiles(req.uploadedFiles); // Eliminar archivos temporales
+    if (req.uploadedFiles) deleteFiles(req.uploadedFiles);
 
     res.statusMessage = err.message;
     return res.status(400).send({ err: err.message, status: 400, ok: false });

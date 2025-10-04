@@ -1,5 +1,5 @@
-const consts = {
-    apiPath: '/api',
+const generalConstants = {
+    apiPath: "/ciudadano-digital/api",
     token: {
         refresh: 'REFRESH',
         access: 'ACCESS',
@@ -14,6 +14,6 @@ const consts = {
     },
     chatsNumberPerPage: 10,
     messagesNumberPerPage: 20,
-};
+}
 
-export default consts;
+export { generalConstants };
