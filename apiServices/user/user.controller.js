@@ -5,8 +5,10 @@ import consts from '../../utils/consts.js'
 import { v4 as uuidv4 } from 'uuid'
 import sha256 from 'js-sha256'
 import moment from 'moment'
-import logger from '../../utils/logger.js'
+import { Logger } from '../../utils/logger.js'
 import CustomError from '../../utils/customError.js'
+
+const logger = new Logger({ filename: 'user-controller.log' })
 
 export const registerUser = async (req, res) => {
   try {
@@ -52,7 +54,7 @@ export const registerUser = async (req, res) => {
       refreshExpiresAt: Math.floor(new Date(storedExpiresAt).getTime() / 1000),
     })
   } catch (err) {
-    logger.error('Error en registerUser:', err)
+    logger.error(err.message, { title: 'Error en registerUser' })
     if (err instanceof CustomError) {
       return res.status(err.status).json({ error: err.message })
     }
