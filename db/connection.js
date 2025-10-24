@@ -1,29 +1,43 @@
-import pkg from 'pg';
+import { Pool } from 'pg';
 import config from 'config';
 
-const { Pool } = pkg;
+const connectionUri = config.get('dbConnectionUri');
 
-const uri = config.get('dbConnectionUri');
+let pool;
 
-const pool = new Pool({
-    connectionString: uri,
-    ssl: { rejectUnauthorized: false }
-});
+export async function initDb() {
+	if (pool) return pool;
 
-pool.on('error', (err) => {
-    console.error('Error inesperado en el pool de conexión:', err);
-});
+	try {
+		pool = new Pool({
+			connectionString: connectionUri,
+			ssl: { rejectUnauthorized: false },
+			idleTimeoutMillis: 60000,
+			max: 10,
+		});
 
-const connect = async () => {
-    try {
-        const client = await pool.connect();
-        console.info('Conexión a la base de datos exitosa.');
-        client.release();
-    } catch (err) {
-        console.error('Error al conectar a la base de datos:', err);
-        process.exit(1);
-    }
-};
+		await pool.query('SELECT 1');
+		console.log('✅ Conexión a PostgreSQL inicializada y validada');
 
-export default connect;
-export { pool };
+		return pool;
+	} catch (err) {
+		console.error('❌ Error al inicializar conexión a PostgreSQL:', err.message);
+		throw err;
+	}
+}
+
+export async function getConnection() {
+	if (!pool) await initDb();
+	return pool;
+}
+
+export async function closeDb() {
+	try {
+		if (pool) {
+			await pool.end();
+			console.log('🛑 Pool de conexiones a PostgreSQL cerrado');
+		}
+	} catch (err) {
+		console.error('⚠️ Error al cerrar la conexión:', err.message);
+	}
+}

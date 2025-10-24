@@ -1,7 +1,9 @@
 const dotenv = require('dotenv');
+const dotenvExpand = require('dotenv-expand');
 
 // Hace accesibles las variables de entorno
-dotenv.config();
+const env = dotenv.config();
+dotenvExpand.expand(env);
 
 module.exports = {
   port: process.env.PORT || 3000,
@@ -11,4 +13,5 @@ module.exports = {
   sendErrorObj: true,
   verbose: 2,
   avoidCors: true,
+  logDir: process.env.ROUTE_LOG
 };

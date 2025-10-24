@@ -1,0 +1,202 @@
+import fs from 'fs';
+import path from 'path';
+import config from 'config';
+
+const logDir = config.get('logDir');
+
+// Niveles de log disponibles
+const LOG_LEVELS = {
+	ERROR: 'ERROR',
+	WARN: 'WARN',
+	INFO: 'INFO',
+	DEBUG: 'DEBUG',
+	SUCCESS: 'SUCCESS',
+};
+
+// Colores para consola (opcional, si quieres ver en terminal)
+const COLORS = {
+	ERROR: '\x1b[31m', // Rojo
+	WARN: '\x1b[33m', // Amarillo
+	INFO: '\x1b[36m', // Cyan
+	DEBUG: '\x1b[35m', // Magenta
+	SUCCESS: '\x1b[32m', // Verde
+	RESET: '\x1b[0m',
+};
+
+class Logger {
+	constructor(config = {}) {
+		this.logsDir = logDir;
+		this.filename = config.filename || 'app.log';
+		this.enableConsole = config.enableConsole !== undefined ? config.enableConsole : true;
+		this.enableFile = config.enableFile !== undefined ? config.enableFile : true;
+		this.maxFileSize = config.maxFileSize || 5 * 1024 * 1024; // 5MB por defecto
+
+		// Crear directorio de logs si no existe
+		if (this.enableFile && !fs.existsSync(this.logsDir)) {
+			fs.mkdirSync(this.logsDir, { recursive: true });
+		}
+	}
+
+	/**
+	 * Obtiene el nombre del archivo que llamó al logger
+	 * @param {Error} error - Error stack para extraer el archivo origen
+	 * @returns {string} Nombre del archivo origen
+	 */
+	getCallerFile(error) {
+		const stack = error.stack.split('\n');
+		// El stack[2] generalmente contiene el archivo que llamó a log()
+		const callerLine = stack[3] || stack[2] || '';
+		const match = callerLine.match(/\((.+):(\d+):(\d+)\)/) || callerLine.match(/at (.+):(\d+):(\d+)/);
+
+		if (match) {
+			const fullPath = match[1];
+			return path.basename(fullPath);
+		}
+
+		return 'unknown';
+	}
+
+	/**
+	 * Formatea el mensaje de log
+	 * @param {Object} logData - Datos del log
+	 * @returns {string} Mensaje formateado
+	 */
+	formatLog(logData) {
+		const {
+			timestamp, level, sourceFile, title, content,
+		} = logData;
+
+		const titlePart = title ? ` [${title}]` : '';
+		const header = `[${timestamp}] [${level}] [${sourceFile}]${titlePart}`;
+
+		let contentStr;
+		if (typeof content === 'object') {
+			contentStr = JSON.stringify(content, null, 2);
+		} else {
+			contentStr = content;
+		}
+
+		return `${header}\n${contentStr}\n${'─'.repeat(80)}\n`;
+	}
+
+	/**
+	 * Formatea el mensaje para consola con colores
+	 * @param {Object} logData - Datos del log
+	 * @returns {string} Mensaje formateado con colores
+	 */
+	formatConsoleLog(logData) {
+		const {
+			timestamp, level, sourceFile, title, content,
+		} = logData;
+
+		const color = COLORS[level] || COLORS.RESET;
+		const titlePart = title ? ` [${title}]` : '';
+		const header = `${color}[${timestamp}] [${level}] [${sourceFile}]${titlePart}${COLORS.RESET}`;
+
+		return { header, content };
+	}
+
+	/**
+	 * Rota el archivo de log si excede el tamaño máximo
+	 */
+	rotateLogFile() {
+		const logPath = path.join(this.logsDir, this.filename);
+
+		if (!fs.existsSync(logPath)) return;
+
+		const stats = fs.statSync(logPath);
+		if (stats.size >= this.maxFileSize) {
+			const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+			const newFilename = `${path.parse(this.filename).name}_${timestamp}.log`;
+			const newPath = path.join(this.logsDir, newFilename);
+
+			fs.renameSync(logPath, newPath);
+		}
+	}
+
+	/**
+	 * Escribe el log en archivo
+	 * @param {string} formattedLog - Log formateado
+	 */
+	writeToFile(formattedLog) {
+		if (!this.enableFile) return;
+
+		this.rotateLogFile();
+
+		const logPath = path.join(this.logsDir, this.filename);
+		fs.appendFileSync(logPath, formattedLog, 'utf8');
+	}
+
+	/**
+	 * Función principal de logging
+	 * @param {string} level - Nivel del log (ERROR, WARN, INFO, DEBUG, SUCCESS)
+	 * @param {any} content - Contenido del log
+	 * @param {Object} options - Opciones adicionales
+	 * @param {string} options.title - Título opcional del log
+	 * @param {string} options.sourceFile - Archivo origen (se detecta automáticamente si no se provee)
+	 */
+	log(level, content, options = {}) {
+		const timestamp = new Date().toISOString();
+		const sourceFile = options.sourceFile || this.getCallerFile(new Error());
+		const { title } = options;
+
+		const logData = {
+			timestamp,
+			level: level.toUpperCase(),
+			sourceFile,
+			title,
+			content,
+		};
+
+		// Escribir en archivo
+		if (this.enableFile) {
+			const formattedLog = this.formatLog(logData);
+			this.writeToFile(formattedLog);
+		}
+
+		// Mostrar en consola
+		// if (this.enableConsole) {
+		// 	const { header, content: logContent } = this.formatConsoleLog(logData);
+		// 	console.log(header);
+		// 	if (typeof logContent === 'object') {
+		// 		console.dir(logContent, { depth: null, colors: true });
+		// 	} else {
+		// 		console.log(logContent);
+		// 	}
+		// 	console.log('─'.repeat(80));
+		// }
+	}
+
+	// Métodos de conveniencia
+	error(content, options = {}) {
+		this.log(LOG_LEVELS.ERROR, content, options);
+	}
+
+	warn(content, options = {}) {
+		this.log(LOG_LEVELS.WARN, content, options);
+	}
+
+	info(content, options = {}) {
+		this.log(LOG_LEVELS.INFO, content, options);
+	}
+
+	debug(content, options = {}) {
+		this.log(LOG_LEVELS.DEBUG, content, options);
+	}
+
+	success(content, options = {}) {
+		this.log(LOG_LEVELS.SUCCESS, content, options);
+	}
+}
+
+// Exportar instancia por defecto y clase
+const logger = new Logger({
+	logsDir: config.get('logDir'),
+	filename: 'app.log',
+	enableConsole: true,
+	enableFile: true,
+	maxFileSize: 5 * 1024 * 1024, // 5MB
+});
+
+export { Logger, LOG_LEVELS };
+export default logger;
