@@ -1,7 +1,8 @@
-import config from 'config';
-import app from '../app.js';
+/* eslint-disable no-console */
+import config from 'config'
+import app from '../app.js'
 
-const port = config.get('port');
+const port = config.get('port')
 app.listen(port, () => {
-    console.log(`Servidor corriendo en puerto ${port}.`);
-});
+  console.log(`Servidor corriendo en puerto ${port}.`)
+})

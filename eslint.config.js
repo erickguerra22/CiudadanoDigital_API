@@ -1,16 +1,18 @@
-import js from "@eslint/js";
-import globals from "globals";
-import { defineConfig } from "eslint/config";
-import airbnbBase from "eslint-config-airbnb-base";
-import importPlugin from "eslint-plugin-import";
+import globals from 'globals'
+import { defineConfig } from 'eslint/config'
+import eslint from '@eslint/js'
+import importPlugin from 'eslint-plugin-import'
+import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
 
 export default defineConfig([
-  js,
+  eslint.configs.recommended,
+  eslintPluginPrettierRecommended,
   {
-    files: ["**/*.{js,mjs,cjs}"],
+    ignores: ['node_modules/**', 'dist/**', 'eslint.config.js'],
+    files: ['**/*.{js,mjs,cjs}'],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: "module",
+      sourceType: 'module',
       globals: {
         ...globals.browser,
         ...globals.node,
@@ -19,18 +21,22 @@ export default defineConfig([
     plugins: {
       import: importPlugin,
     },
-    extends: [
-      "airbnb-base",
-      "plugin:import/recommended",
-    ],
     rules: {
-      "no-underscore-dangle": "on",
-      "max-len": [
-        "warn",
-        200
+      ...importPlugin.configs.recommended.rules,
+      'import/no-unresolved': [
+        'error',
+        {
+          ignore: ['^uuid$'],
+        },
       ],
-      "no-console": "warn",
-      "import/no-extraneous-dependencies": "off",
+
+      'prettier/prettier': ['error'],
+      'no-underscore-dangle': 'warn',
+      semi: ['error', 'never'],
+      'max-len': ['warn', { code: 200, ignoreComments: true }],
+      'no-console': 'warn',
+      'import/no-extraneous-dependencies': 'error',
+      'no-unused-vars': ['warn', { varsIgnorePattern: '^_', argsIgnorePattern: '^_' }],
     },
   },
-]);
+])
