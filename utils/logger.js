@@ -4,7 +4,6 @@ import config from 'config'
 
 const logDir = config.get('logDir')
 
-// Niveles de log disponibles
 const LOG_LEVELS = {
   ERROR: 'ERROR',
   WARN: 'WARN',
@@ -13,27 +12,23 @@ const LOG_LEVELS = {
   SUCCESS: 'SUCCESS',
 }
 
-// Colores para consola
-const COLORS = {
-  ERROR: '\x1b[31m', // Rojo
-  WARN: '\x1b[33m', // Amarillo
-  INFO: '\x1b[36m', // Cyan
-  DEBUG: '\x1b[35m', // Magenta
-  SUCCESS: '\x1b[32m', // Verde
-  RESET: '\x1b[0m',
-}
-
 class Logger {
   constructor(config = {}) {
-    this.logsDir = logDir
+    this.baseLogsDir = logDir
     this.filename = config.filename || 'app.log'
-    this.enableConsole = config.enableConsole !== undefined ? config.enableConsole : true
     this.enableFile = config.enableFile !== undefined ? config.enableFile : true
     this.maxFileSize = config.maxFileSize || 5 * 1024 * 1024 // 5MB por defecto
 
-    // Crear directorio de logs si no existe
-    if (this.enableFile && !fs.existsSync(this.logsDir)) {
-      fs.mkdirSync(this.logsDir, { recursive: true })
+    // Crear carpeta con fecha del día (YYYY-MM-DD)
+    const currentDate = new Date().toISOString().split('T')[0]
+    this.logsDir = path.join(this.baseLogsDir, currentDate)
+
+    // Crear directorio de logs con fecha si no existe
+    // recursive: true crea tanto /logs como /logs/2025-10-24 si no existen
+    if (this.enableFile) {
+      if (!fs.existsSync(this.logsDir)) {
+        fs.mkdirSync(this.logsDir, { recursive: true })
+      }
     }
   }
 
@@ -75,21 +70,6 @@ class Logger {
     }
 
     return `${header}\n${contentStr}\n${'─'.repeat(80)}\n`
-  }
-
-  /**
-   * Formatea el mensaje para consola con colores
-   * @param {Object} logData - Datos del log
-   * @returns {string} Mensaje formateado con colores
-   */
-  formatConsoleLog(logData) {
-    const { timestamp, level, sourceFile, title, content } = logData
-
-    const color = COLORS[level] || COLORS.RESET
-    const titlePart = title ? ` [${title}]` : ''
-    const header = `${color}[${timestamp}] [${level}] [${sourceFile}]${titlePart}${COLORS.RESET}`
-
-    return { header, content }
   }
 
   /**
@@ -171,13 +151,7 @@ class Logger {
   }
 }
 
-const logger = new Logger({
-  logsDir: config.get('logDir'),
-  filename: 'app.log',
-  enableConsole: true,
-  enableFile: true,
-  maxFileSize: 5 * 1024 * 1024,
-})
+const logger = new Logger()
 
 export { Logger, LOG_LEVELS }
 export default logger

@@ -1,6 +1,8 @@
 import CustomError from '../../utils/customError.js'
 import { loginModel, refreshTokenModel, logoutModel } from './auth.model.js'
-import logger from '../../utils/logger.js'
+import { Logger } from '../../utils/logger.js'
+
+const logger = new Logger({ filename: 'auth-controller.log' })
 
 export const loginController = async (req, res) => {
   try {
@@ -26,7 +28,7 @@ export const loginController = async (req, res) => {
     if (err instanceof CustomError) {
       return res.status(err.status).json({ error: err.message })
     }
-    logger.error('Login error:', err.message)
+    logger.error(err.message, { title: 'Login error' })
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 }
@@ -48,7 +50,7 @@ export const refreshTokenController = async (req, res) => {
     if (err instanceof CustomError) {
       return res.status(err.status).json({ error: err.message })
     }
-    logger.error('Refresh token error:', err)
+    logger.error(err.message, { title: 'Refresh token error' })
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 }
@@ -67,7 +69,7 @@ export const logoutController = async (req, res) => {
     if (err instanceof CustomError) {
       return res.status(err.status).json({ error: err.message })
     }
-    logger.error('Logout error:', err)
+    logger.error(err.message, { title: 'Logout error' })
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 }

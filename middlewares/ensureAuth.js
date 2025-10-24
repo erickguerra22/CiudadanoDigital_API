@@ -1,6 +1,8 @@
 import { validateToken } from '../middlewares/jwt.js'
 import consts from '../utils/consts.js'
-import logger from '../utils/logger.js'
+import { Logger } from '../utils/logger.js'
+
+const logger = new Logger({ filename: 'ensure-auth.log' })
 
 const ensureAuth = async (req, res, next) => {
   try {
@@ -37,7 +39,7 @@ const ensureAuth = async (req, res, next) => {
 
     next()
   } catch (ex) {
-    logger.error('Error al verificar token: ', ex.message)
+    logger.error(ex.message, { title: 'Error al verificar token' })
     res.statusMessage = 'El token de acceso no es válido o ha expirado.'
     return res.sendStatus(401)
   }
