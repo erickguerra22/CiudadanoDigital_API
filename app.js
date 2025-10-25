@@ -4,6 +4,7 @@ import config from 'config'
 import { initDb } from './db/connection.js'
 import consts from './utils/consts.js'
 import authRouter from './apiServices/auth/auth.route.js'
+import userRouter from './apiServices/user/user.route.js'
 
 const api = consts.apiPath
 
@@ -30,5 +31,6 @@ app.get(`${api}/`, (_, res) => {
   res.send('API de CIUDADANO DIGITAL')
 })
 app.use(`${api}/auth/`, authRouter)
+app.use(`${api}/user/`, userRouter)
 
 export default app
