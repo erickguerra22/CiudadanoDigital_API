@@ -34,13 +34,40 @@ export const loginModel = async (email, password, deviceId) => {
   const refreshExpiresAt = moment().add(consts.tokenExpiration.refresh_days_expiration, 'day').unix()
 
   await revokeToken(user.userid, deviceId)
-  await pool.query(
-    `INSERT INTO Sesion (userId, deviceId, refreshToken, expiresAt, revoked)
-             VALUES ($1, $2, $3, $4, false)`,
-    [user.userid, deviceId, refreshTokenHash, new Date(refreshExpiresAt * 1000)]
-  )
+  const _ = await storeRefresh(user.userid, deviceId, refreshTokenHash, refreshExpiresAt)
 
   return { token, expiresAt, refreshToken, refreshExpiresAt }
+}
+
+export const storeRefresh = async (userId, deviceId, refreshToken, expiresAt) => {
+  const pool = await getConnection()
+
+  const querySelect = 'SELECT refreshtoken, expiresat FROM Sesion WHERE userId = $1 AND deviceId = $2'
+  const valuesSelect = [userId, deviceId]
+  const { rows: foundTokens } = await pool.query(querySelect, valuesSelect)
+  if (foundTokens.length !== 0) {
+    return {
+      refreshToken: foundTokens[0].refreshtoken,
+      expiresAt: foundTokens[0].expiresat,
+    }
+  }
+
+  const query = `INSERT INTO Sesion (userId, deviceId, refreshToken, expiresAt)
+                  VALUES ($1, $2, $3, $4)
+                RETURNING userId, refreshToken, expiresAt;`
+
+  const values = [userId, deviceId, refreshToken, expiresAt]
+
+  const { rows } = await pool.query(query, values)
+  if (rows.length === 0) {
+    throw new CustomError('No se pudo almacenar el refresh token', 500)
+  }
+  const created = rows[0]
+
+  return {
+    refreshToken: created.refreshtoken,
+    expiresAt: created.expiresat,
+  }
 }
 
 export const refreshTokenModel = async (userId, deviceId, refreshToken) => {

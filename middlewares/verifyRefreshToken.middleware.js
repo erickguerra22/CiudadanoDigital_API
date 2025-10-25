@@ -1,7 +1,7 @@
 import { validateToken } from './jwt.js'
 import CustomError from '../utils/customError.js'
 
-export const verifyRefreshToken = async (req, res, next) => {
+export const verifyAccessToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization
 
@@ -11,16 +11,16 @@ export const verifyRefreshToken = async (req, res, next) => {
 
     const token = authHeader.substring(7)
 
-    // Verificar el access token (puede estar expirado, pero necesitamos los datos)
-    const decoded = await validateToken(token, { ignoreExpiration: true })
+    // Verificar el access token normalmente (sin ignorar expiración)
+    const decoded = await validateToken(token)
 
     if (!decoded) {
       throw new CustomError('Token inválido', 401)
     }
 
     // Adjuntar los datos verificados a la request
-    req.verifiedToken = {
-      userId: decoded.userId,
+    req.user = {
+      sub: decoded.userId,
       deviceId: decoded.deviceId,
       email: decoded.email,
     }
