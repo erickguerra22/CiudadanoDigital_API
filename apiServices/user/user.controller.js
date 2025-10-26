@@ -28,13 +28,11 @@ export const registerUser = async (req, res) => {
       passwordHash,
     })
 
-    // Generar refresh token y almacenarlo en la base de datos
     const refreshToken = uuidv4()
     const refreshTokenId = uuidv4()
     const refreshTokenHash = sha256(refreshToken).toString()
     const refreshExpiresAt = moment().add(consts.tokenExpiration.refresh_days_expiration, 'day').unix()
 
-    // Generar access token
     const { token, expiresAt } = signAccessToken({
       userId: user.userid,
       email: user.email,
@@ -68,11 +66,7 @@ export const registerUser = async (req, res) => {
 
 export const getLoggedUser = async (req, res) => {
   try {
-    const { sub: userId } = req.user || {}
-
-    if (!userId) {
-      throw new CustomError('Token inválido o faltante', 401)
-    }
+    const { sub: userId } = req.user
 
     const user = await getUserById(userId)
 
@@ -92,11 +86,7 @@ export const getLoggedUser = async (req, res) => {
 
 export const updateUser = async (req, res) => {
   try {
-    const { sub } = req.user || {}
-
-    if (!sub) {
-      throw new CustomError('Token inválido o faltante', 401)
-    }
+    const { sub } = req.user
     const { userId } = req.params
 
     if (sub != userId) throw new CustomError('No está permitido modificar información de otros usuarios.', 403)

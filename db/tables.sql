@@ -1,5 +1,8 @@
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 DROP TABLE IF EXISTS Documento;
 DROP TABLE IF EXISTS Sesion;
+DROP TABLE IF EXISTS CodigoRecuperacion;
 DROP TABLE IF EXISTS Mensaje;
 DROP TABLE IF EXISTS Chat;
 DROP TABLE IF EXISTS Usuario;
@@ -36,6 +39,11 @@ CREATE TABLE Mensaje (
         ON DELETE CASCADE
 );
 
+ALTER TABLE Mensaje
+ALTER COLUMN chatId DROP NOT NULL;
+
+ALTER TABLE Mensaje ADD COLUMN IF NOT EXISTS asigned BOOLEAN default false;
+
 CREATE TABLE Sesion (
     userId INT,
 	deviceId VARCHAR(255) NOT NULL,
@@ -46,6 +54,23 @@ CREATE TABLE Sesion (
 	CONSTRAINT fk_sesion_usuario FOREIGN KEY (userId)
         REFERENCES Usuario(userId)
         ON DELETE SET NULL
+);
+ALTER TABLE Sesion ADD COLUMN IF NOT EXISTS revokedAt TIMESTAMP;
+
+ALTER TABLE Sesion
+ADD COLUMN IF NOT EXISTS refreshId UUID NOT NULL DEFAULT gen_random_uuid();
+
+ALTER TABLE Sesion
+ADD CONSTRAINT IF NOT EXISTS pk_sesion PRIMARY KEY (refreshId);
+
+CREATE TABLE CodigoRecuperacion (
+    userId INT PRIMARY KEY,
+    codeHash VARCHAR(255) NOT NULL,
+    createdAt TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expiresAt TIMESTAMPTZ NOT NULL,
+    CONSTRAINT fk_codRec_usuario FOREIGN KEY (userId)
+        REFERENCES Usuario(userId)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE Documento (
