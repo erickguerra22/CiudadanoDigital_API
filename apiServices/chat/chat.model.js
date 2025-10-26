@@ -39,3 +39,24 @@ export const getChatsModel = async ({ userId }) => {
 
   return rows
 }
+
+export const getChatById = async ({ chatId }) => {
+  const pool = await getConnection()
+
+  const query = `
+    SELECT 
+      chatId, 
+      userId, 
+      fechaInicio, 
+      nombre
+    FROM Chat
+    WHERE chatId = $1`
+
+  const { rows } = await pool.query(query, [chatId])
+
+  if (!rows || rows.length === 0) {
+    throw new CustomError('El chat no existe.', 404)
+  }
+
+  return rows[0]
+}
