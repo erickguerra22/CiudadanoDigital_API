@@ -2,6 +2,7 @@ import { createMessageModel, getChatMessagesModel, updateMessageModel } from './
 import { getChatById } from '../chat/chat.model.js'
 import { Logger } from '../../utils/logger.js'
 import CustomError from '../../utils/customError.js'
+import config from 'config'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import { dirname, resolve } from 'path'
@@ -102,7 +103,8 @@ export const getResponse = async (req, res) => {
       throw new CustomError('No se proporcionó la pregunta', 400)
     }
 
-    const pythonPath = resolve(dirPath, '../../ciudadano_digital/Scripts/python.exe')
+    const venvPython = config.get('venvPython')
+    const pythonPath = resolve(dirPath, `../../ciudadano_digital/${venvPython}`)
     const servicePath = resolve(dirPath, '../../services/questionsService/main.py')
 
     const pythonCommand = `"${pythonPath}" "${servicePath}" "${question}"`

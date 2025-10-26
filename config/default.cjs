@@ -18,4 +18,5 @@ module.exports = {
   smtpPort: process.env.SMTP_PORT,
   smtpUser: process.env.SMTP_USER,
   smtpPass: process.env.SMTP_APP_PASS,
+  venvPython: process.env.VENV_PYTHON,
 }
