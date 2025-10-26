@@ -1,9 +1,9 @@
-const dotenv = require('dotenv');
-const dotenvExpand = require('dotenv-expand');
+const dotenv = require('dotenv')
+const dotenvExpand = require('dotenv-expand')
 
 // Hace accesibles las variables de entorno
-const env = dotenv.config();
-dotenvExpand.expand(env);
+const env = dotenv.config()
+dotenvExpand.expand(env)
 
 module.exports = {
   port: process.env.PORT || 3000,
@@ -13,5 +13,9 @@ module.exports = {
   sendErrorObj: true,
   verbose: 2,
   avoidCors: true,
-  logDir: process.env.ROUTE_LOG
-};
+  logDir: process.env.ROUTE_LOG,
+  smtpHost: process.env.SMTP_HOST,
+  smtpPort: process.env.SMTP_PORT,
+  smtpUser: process.env.SMTP_USER,
+  smtpPass: process.env.SMTP_APP_PASS,
+}

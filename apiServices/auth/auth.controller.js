@@ -1,6 +1,13 @@
 import CustomError from '../../utils/customError.js'
-import { loginModel, refreshTokenModel, logoutModel } from './auth.model.js'
+import { loginModel, refreshTokenModel, logoutModel, storeRecoveryCode, getRecoveryCode, deleteRecoveryCode, resetPasswordModel } from './auth.model.js'
 import { Logger } from '../../utils/logger.js'
+import { getUserByEmail } from '../user/user.model.js'
+import bcrypt from 'bcryptjs'
+import moment from 'moment'
+import { sendEmail } from '../../services/email.service.js'
+import crypto from 'crypto'
+import { signRecoverPasswordToken } from '../../middlewares/jwt.js'
+import consts from '../../utils/consts.js'
 
 const logger = new Logger({ filename: 'auth-controller.log' })
 
@@ -35,7 +42,7 @@ export const loginController = async (req, res) => {
 
 export const refreshTokenController = async (req, res) => {
   try {
-    const { userId, deviceId } = req.verifiedToken
+    const { sub, deviceId } = req.user
     const clientType = req.headers['x-client-type'] || 'web'
     const refreshToken = clientType === 'web' ? req.cookies.refreshToken : req.body.refreshToken
 
@@ -43,7 +50,7 @@ export const refreshTokenController = async (req, res) => {
       throw new CustomError('Refresh token no proporcionado', 401)
     }
 
-    const result = await refreshTokenModel(userId, deviceId, refreshToken)
+    const result = await refreshTokenModel(sub, deviceId, refreshToken)
 
     res.json(result)
   } catch (err) {
@@ -57,11 +64,11 @@ export const refreshTokenController = async (req, res) => {
 
 export const logoutController = async (req, res) => {
   try {
-    const { userId, deviceId } = req.verifiedToken
+    const { sub, deviceId } = req.user
     const clientType = req.headers['x-client-type'] || 'web'
     const refreshToken = clientType === 'web' ? req.cookies.refreshToken : req.body.refreshToken
 
-    await logoutModel(userId, deviceId, refreshToken)
+    await logoutModel(sub, deviceId, refreshToken)
     res.clearCookie('refreshToken')
 
     res.json({ message: 'Sesión cerrada exitosamente' })
@@ -71,5 +78,104 @@ export const logoutController = async (req, res) => {
     }
     logger.error(err.message, { title: 'Logout error' })
     res.status(500).json({ error: 'Error interno del servidor' })
+  }
+}
+
+export const requestRecoveryCode = async (req, res) => {
+  try {
+    const { email } = req.body
+
+    const user = await getUserByEmail(email)
+
+    if (!user) {
+      logger.error('Intento de recuperación con email inexistente: ' + email, { title: 'requestRecoveryCode' })
+      return res.status(200).json({ message: 'Si el correo existe, se envió un código de recuperación.' })
+    }
+
+    const code = crypto.randomInt(100000, 999999).toString()
+
+    const salt = await bcrypt.genSalt(10)
+    const codeHash = await bcrypt.hash(code, salt)
+
+    const expiresAt = moment().add(15, 'minutes').toDate()
+
+    await storeRecoveryCode(user.userid, codeHash, expiresAt)
+
+    await sendEmail({
+      to: email,
+      subject: 'Código de recuperación de contraseña',
+      html: `<p>Tu código de recuperación es: <b>${code}</b>. Expira en 15 minutos.</p>`,
+    })
+
+    return res.status(200).json({ message: 'Si el correo existe, se envió un código de recuperación.' })
+  } catch (err) {
+    logger.error(err.message, { title: 'Error en requestRecoveryCode' })
+    if (err instanceof CustomError) return res.status(err.status).json({ error: err.message })
+    return res.status(500).json({ error: 'Error interno del servidor.' })
+  }
+}
+
+export const verifyRecoveryCode = async (req, res) => {
+  try {
+    const { email, code } = req.body
+
+    const user = await getUserByEmail(email)
+    if (!user) {
+      return res.status(400).json({ error: 'Código inválido o expirado.' })
+    }
+
+    const codeData = await getRecoveryCode(user.userid)
+    if (!codeData) {
+      return res.status(400).json({ error: 'Código inválido o expirado.' })
+    }
+
+    if (new Date() > codeData.expiresat) {
+      return res.status(400).json({ error: 'Código inválido o expirado.' })
+    }
+
+    const isValid = await bcrypt.compare(code, codeData.codehash)
+    if (!isValid) {
+      return res.status(400).json({ error: 'Código inválido o expirado.' })
+    }
+
+    const { token, expiresAt } = signRecoverPasswordToken({
+      id: user.userid,
+      name: user.names,
+      lastname: user.lastnames,
+      email: user.email,
+    })
+
+    await sendEmail({
+      to: email,
+      subject: 'Verificación de código exitosa',
+      html: `<p>Tienes solamente ${consts.tokenExpiration.recover_hours_expiration} ${consts.tokenExpiration.recover_hours_expiration > 1 ? 'horas' : 'hora'} para reestablecer tu contraseña.</p>`,
+    })
+
+    await deleteRecoveryCode(user.userid)
+
+    return res.status(200).json({
+      token,
+      expiresAt,
+      message: `Este token expira en ${consts.tokenExpiration.recover_hours_expiration} ${consts.tokenExpiration.recover_hours_expiration > 1 ? 'horas' : 'hora'}.`,
+    })
+  } catch (err) {
+    logger.error(err.message, { title: 'Error en requestRecoveryCode' })
+    if (err instanceof CustomError) return res.status(err.status).json({ error: err.message })
+    return res.status(500).json({ error: 'Error interno del servidor.' })
+  }
+}
+
+export const recoverPassword = async (req, res) => {
+  try {
+    const { password } = req.body
+
+    const { userId } = req.recovery
+
+    await resetPasswordModel(userId, password)
+
+    return res.status(200).json({ message: 'Contraseña actualizada correctamente.' })
+  } catch (err) {
+    logger.error(err.message, { title: 'Error al actualizar contraseña' })
+    res.status(500).json({ error: 'Error interno del servidor.' })
   }
 }

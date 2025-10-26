@@ -21,28 +21,31 @@ export const loginModel = async (email, password, deviceId) => {
   if (!isMatch) throw new CustomError('Credenciales incorrectas', 401)
 
   delete user.password
+
+  const refreshToken = uuidv4()
+  const refreshTokenId = uuidv4()
+  const refreshTokenHash = sha256(refreshToken.trim())
+  const refreshExpiresAt = moment().add(consts.tokenExpiration.refresh_days_expiration, 'day').unix()
+
   const { token, expiresAt } = signAccessToken({
     userId: user.userid,
     deviceId,
     email: user.email,
     names: user.names,
     lastnames: user.lastnames,
+    refreshId: refreshTokenId,
   })
 
-  const refreshToken = uuidv4()
-  const refreshTokenHash = sha256(refreshToken.trim())
-  const refreshExpiresAt = moment().add(consts.tokenExpiration.refresh_days_expiration, 'day').unix()
-
   await revokeToken(user.userid, deviceId)
-  const _ = await storeRefresh(user.userid, deviceId, refreshTokenHash, refreshExpiresAt)
+  await storeRefresh(user.userid, deviceId, refreshTokenHash, moment().add(consts.tokenExpiration.refresh_days_expiration, 'day').toDate(), refreshTokenId)
 
   return { token, expiresAt, refreshToken, refreshExpiresAt }
 }
 
-export const storeRefresh = async (userId, deviceId, refreshToken, expiresAt) => {
+export const storeRefresh = async (userId, deviceId, refreshToken, expiresAt, refreshTokenId) => {
   const pool = await getConnection()
 
-  const querySelect = 'SELECT refreshtoken, expiresat FROM Sesion WHERE userId = $1 AND deviceId = $2'
+  const querySelect = 'SELECT refreshtoken, expiresat FROM Sesion WHERE userId = $1 AND deviceId = $2 AND revoked = false'
   const valuesSelect = [userId, deviceId]
   const { rows: foundTokens } = await pool.query(querySelect, valuesSelect)
   if (foundTokens.length !== 0) {
@@ -52,11 +55,11 @@ export const storeRefresh = async (userId, deviceId, refreshToken, expiresAt) =>
     }
   }
 
-  const query = `INSERT INTO Sesion (userId, deviceId, refreshToken, expiresAt)
-                  VALUES ($1, $2, $3, $4)
+  const query = `INSERT INTO Sesion (userId, deviceId, refreshToken, expiresAt, refreshId)
+                  VALUES ($1, $2, $3, $4, $5)
                 RETURNING userId, refreshToken, expiresAt;`
 
-  const values = [userId, deviceId, refreshToken, expiresAt]
+  const values = [userId, deviceId, refreshToken, expiresAt, refreshTokenId]
 
   const { rows } = await pool.query(query, values)
   if (rows.length === 0) {
@@ -130,7 +133,49 @@ const revokeToken = async (userId, deviceId) => {
   const pool = await getConnection()
   await pool.query(
     `UPDATE Sesion SET revoked = true, revokedAt = NOW()
-             WHERE userId = $1 AND deviceId = $2 AND revoked = false`,
+             WHERE userId = $1 AND deviceId = $2`,
     [userId, deviceId]
   )
+}
+
+export const storeRecoveryCode = async (userId, codeHash, expiresAt) => {
+  const pool = await getConnection()
+
+  const query = `
+    INSERT INTO CodigoRecuperacion (userId, codeHash, expiresAt)
+      VALUES ($1, $2, $3)
+    ON CONFLICT (userId)
+      DO UPDATE SET codeHash = $2, expiresAt = $3, createdAt = NOW();`
+  await pool.query(query, [userId, codeHash, expiresAt])
+}
+
+export const getRecoveryCode = async (userId) => {
+  const pool = await getConnection()
+  const query = `SELECT * FROM CodigoRecuperacion WHERE userId = $1`
+  const result = await pool.query(query, [userId])
+  return result.rows[0] || null
+}
+
+export const deleteRecoveryCode = async (userId) => {
+  const pool = await getConnection()
+  const query = `DELETE FROM CodigoRecuperacion WHERE userId = $1`
+  await pool.query(query, [userId])
+}
+
+export const resetPasswordModel = async (userId, newPassword) => {
+  const pool = await getConnection()
+  const salt = await bcrypt.genSalt(10)
+  const hashedPassword = await bcrypt.hash(newPassword, salt)
+
+  await pool.query(`UPDATE Usuario SET password = $1 WHERE userid = $2`, [hashedPassword, userId])
+  await deleteRecoveryCode(userId)
+  await pool.query(`UPDATE Sesion SET revoked = true, revokedat = NOW() WHERE userid = $1`, [userId])
+  return true
+}
+
+export const verifyRefreshToken = async (refreshTokenId) => {
+  const pool = await getConnection()
+  const result = await pool.query(`SELECT * FROM Sesion WHERE refreshid = $1 AND revoked = false`, [refreshTokenId])
+  if (result.rowCount === 0) return false
+  return true
 }

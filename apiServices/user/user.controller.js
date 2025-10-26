@@ -28,26 +28,29 @@ export const registerUser = async (req, res) => {
       passwordHash,
     })
 
+    // Generar refresh token y almacenarlo en la base de datos
+    const refreshToken = uuidv4()
+    const refreshTokenId = uuidv4()
+    const refreshTokenHash = sha256(refreshToken).toString()
+    const refreshExpiresAt = moment().add(consts.tokenExpiration.refresh_days_expiration, 'day').unix()
+
     // Generar access token
     const { token, expiresAt } = signAccessToken({
       userId: user.userid,
       email: user.email,
       names: user.names,
+      deviceId,
       lastnames: user.lastnames,
+      refreshId: refreshTokenId,
     })
 
-    // Generar refresh token y almacenarlo en la base de datos
-    const refreshToken = uuidv4()
-    const refreshTokenHash = sha256(refreshToken).toString()
-    const refreshExpiresAt = moment.utc().add(consts.tokenExpiration.refresh_days_expiration, 'day').toDate()
-
-    const { refreshToken: storedRefreshToken, expiresAt: storedExpiresAt } = await storeRefresh(user.userid, deviceId, refreshTokenHash, refreshExpiresAt)
+    await storeRefresh(user.userid, deviceId, refreshTokenHash, moment().add(consts.tokenExpiration.refresh_days_expiration, 'day').toDate(), refreshTokenId)
 
     return res.status(201).json({
       token,
       expiresAt,
-      refreshToken: storedRefreshToken,
-      refreshExpiresAt: Math.floor(new Date(storedExpiresAt).getTime() / 1000),
+      refreshToken,
+      refreshExpiresAt,
     })
   } catch (err) {
     logger.error(err.message, { title: 'Error en registerUser' })

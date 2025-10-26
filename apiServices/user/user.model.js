@@ -80,3 +80,28 @@ export const updateUserModel = async (userId, userData) => {
 
   return rows[0]
 }
+
+export const getUserByEmail = async (email) => {
+  const pool = await getConnection()
+
+  const query = `
+    SELECT 
+      userId, 
+      email, 
+      names, 
+      lastnames, 
+      birthdate, 
+      phoneCode, 
+      phoneNumber
+    FROM Usuario
+    WHERE email = $1
+    LIMIT 1;`
+
+  const { rows } = await pool.query(query, [email])
+
+  if (!rows || rows.length === 0) {
+    return undefined
+  }
+
+  return rows[0]
+}
