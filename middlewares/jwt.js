@@ -5,7 +5,7 @@ import consts from '../utils/consts.js'
 
 const key = config.get('jwtKey')
 
-const signAccessToken = ({ userId, deviceId, email, names, lastnames }) => {
+const signAccessToken = ({ userId, deviceId, email, names, lastnames, refreshId }) => {
   const expiresAt = moment().add(consts.tokenExpiration.access_hours_expiration, 'hour').unix()
   const token = jwt.sign(
     {
@@ -14,6 +14,7 @@ const signAccessToken = ({ userId, deviceId, email, names, lastnames }) => {
       email,
       names,
       lastnames,
+      refreshId,
       exp: expiresAt,
       type: consts.token.access,
     },
@@ -36,18 +37,21 @@ const signRegisterToken = ({ id, name, lastname, email, sex }) =>
     key
   )
 
-const signRecoverPasswordToken = ({ id, name, lastname, email }) =>
-  jwt.sign(
+const signRecoverPasswordToken = ({ id, name, lastname, email }) => {
+  const expiresAt = moment().add(consts.tokenExpiration.recover_hours_expiration, 'hour').unix()
+  const token = jwt.sign(
     {
       id,
       name,
       lastname,
       email,
-      exp: moment().add(consts.tokenExpiration.recover_hours_expiration, 'hour').unix(),
+      exp: expiresAt,
       type: consts.token.recover,
     },
     key
   )
+  return { token, expiresAt }
+}
 
 const validateToken = async (token) => jwt.verify(token, key)
 

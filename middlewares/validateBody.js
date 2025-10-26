@@ -2,13 +2,16 @@ const validateBody =
   (...schemas) =>
   async (req, res, next) => {
     try {
-      await Promise.all(schemas?.map((schema) => schema.validate(req.body)))
+      await Promise.all(
+        schemas.map((schema) => {
+          const { error } = schema.validate(req.body, { abortEarly: true })
+          if (error) throw error
+        })
+      )
       return next()
     } catch (err) {
-      // if (req.uploadedFiles) deleteFiles(req.uploadedFiles);
-
-      res.statusMessage = err.message
-      return res.status(400).send({ err: err.message, status: 400, ok: false })
+      const messages = err.details?.map((d) => d.message).join(', ') || err.message
+      res.status(400).json({ error: messages })
     }
   }
 
