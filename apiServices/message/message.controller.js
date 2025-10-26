@@ -83,7 +83,7 @@ export const assignMessage = async (req, res) => {
     if (!message) throw new CustomError('Ocurrió un error al asignar el mensaje.', 400)
 
     return res.status(201).json({
-      updated: message,
+      ...message,
     })
   } catch (err) {
     logger.error(err.message, { title: 'Error en assignMessage' })

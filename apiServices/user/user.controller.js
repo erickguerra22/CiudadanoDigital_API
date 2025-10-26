@@ -71,7 +71,7 @@ export const getLoggedUser = async (req, res) => {
     const user = await getUserById(userId)
 
     return res.status(200).json({
-      user,
+      ...user,
     })
   } catch (err) {
     logger.error(err.message, { title: 'Error en getLoggedUser' })
@@ -105,7 +105,7 @@ export const updateUser = async (req, res) => {
     if (!user) throw new CustomError('Ocurrió un error al actualizar el usuario', 400)
 
     return res.status(201).json({
-      updated: user,
+      ...user,
     })
   } catch (err) {
     logger.error(err.message, { title: 'Error en updateUser' })

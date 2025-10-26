@@ -8,11 +8,12 @@ import { sendRecoverySchema } from './validationSchemas/auth.sendRecovery.schema
 import { loginController, refreshTokenController, logoutController, requestRecoveryCode, verifyRecoveryCode, recoverPassword } from './auth.controller.js'
 import { verifyAccessToken } from '../../middlewares/verifyAccessToken.middleware.js'
 import { verifyRecoveryToken } from '../../middlewares/verifyRecoveryToken.middleware.js'
+import { verifyRefreshAccess } from '../../middlewares/verifyRefreshAccess.middleware.js'
 
 const authRouter = express.Router()
 
 authRouter.post('/login', validateBody(loginSchema), loginController)
-authRouter.post('/refresh', validateBody(refreshTokenSchema), verifyAccessToken, refreshTokenController)
+authRouter.post('/refresh', verifyRefreshAccess, validateBody(refreshTokenSchema), refreshTokenController)
 authRouter.post('/logout', verifyAccessToken, logoutController)
 authRouter.post('/sendRecovery', validateBody(sendRecoverySchema), requestRecoveryCode)
 authRouter.post('/verifyCode', validateBody(verifyCodeSchema), verifyRecoveryCode)
