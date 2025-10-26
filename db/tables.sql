@@ -44,6 +44,8 @@ ALTER COLUMN chatId DROP NOT NULL;
 
 ALTER TABLE Mensaje ADD COLUMN IF NOT EXISTS asigned BOOLEAN default false;
 
+ALTER TABLE Mensaje ADD COLUMN IF NOT EXISTS reference VARCHAR(500) default 'N/A';
+
 CREATE TABLE Sesion (
     userId INT,
 	deviceId VARCHAR(255) NOT NULL,

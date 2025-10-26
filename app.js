@@ -5,6 +5,7 @@ import { initDb } from './db/connection.js'
 import consts from './utils/consts.js'
 import authRouter from './apiServices/auth/auth.route.js'
 import userRouter from './apiServices/user/user.route.js'
+import messageRouter from './apiServices/message/message.route.js'
 import chatRouter from './apiServices/chat/chat.route.js'
 
 const api = consts.apiPath
@@ -34,5 +35,6 @@ app.get(`${api}/`, (_, res) => {
 app.use(`${api}/auth/`, authRouter)
 app.use(`${api}/user/`, userRouter)
 app.use(`${api}/chat/`, chatRouter)
+app.use(`${api}/message/`, messageRouter)
 
 export default app
