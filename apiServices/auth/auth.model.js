@@ -94,15 +94,24 @@ export const refreshTokenModel = async (userId, deviceId, refreshToken) => {
 
   if (!user) throw new CustomError('Usuario no encontrado', 404)
 
+  const newRefreshToken = uuidv4()
+  const refreshTokenId = uuidv4()
+  const newRefreshTokenHash = sha256(newRefreshToken.trim())
+  const refreshExpiresAt = moment().add(consts.tokenExpiration.refresh_days_expiration, 'day').unix()
+
   const { token, expiresAt } = signAccessToken({
     userId: user.userid,
     deviceId,
     email: user.email,
     names: user.names,
     lastnames: user.lastnames,
+    refreshId: refreshTokenId,
   })
 
-  return { token, expiresAt }
+  await revokeToken(user.userid, deviceId)
+  await storeRefresh(user.userid, deviceId, newRefreshTokenHash, moment().add(consts.tokenExpiration.refresh_days_expiration, 'day').toDate(), refreshTokenId)
+
+  return { token, expiresAt, refreshToken: newRefreshToken, refreshExpiresAt }
 }
 
 export const logoutModel = async (userId, deviceId, refreshToken) => {
