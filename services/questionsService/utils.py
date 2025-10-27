@@ -99,7 +99,7 @@ def rag_query(question: str, category: str=None,):
     """Pipeline completo RAG: recuperar contexto, generar prompt, obtener respuesta."""
     [context_fragments, sources] = retrieve_context(question, category_filter=category)
     if not context_fragments:
-        return ["⚠️ No hay información suficiente en la base de datos para responder esta pregunta.", None]
+        return ["⚠️ No hay información suficiente en la base de datos para responder esta pregunta.", []]
     prompt = build_rag_prompt(question, context_fragments)
     answer = ask_llm(prompt)
     return [answer, sources]
