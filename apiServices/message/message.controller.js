@@ -1,5 +1,5 @@
 import { createMessageModel, getChatMessagesModel, updateMessageModel } from './message.model.js'
-import { getChatById } from '../chat/chat.model.js'
+import { createChatModel, getChatById } from '../chat/chat.model.js'
 import { Logger } from '../../utils/logger.js'
 import CustomError from '../../utils/customError.js'
 import config from 'config'
@@ -96,6 +96,7 @@ export const assignMessage = async (req, res) => {
 
 export const getResponse = async (req, res) => {
   try {
+    const { sub } = req.user
     const { question } = req.query
     const { chatId } = req.params
 
@@ -107,7 +108,9 @@ export const getResponse = async (req, res) => {
     const pythonPath = resolve(dirPath, `../../ciudadano_digital/${venvPython}`)
     const servicePath = resolve(dirPath, '../../services/questionsService/main.py')
 
-    const pythonCommand = `"${pythonPath}" "${servicePath}" "${question}"`
+    const chat = !chatId ? undefined : await getChatById({ chatId })
+
+    const pythonCommand = `"${pythonPath}" "${servicePath}" "${question}" "${chat?.nombre ?? 'undefined'}"`
     const startTime = Date.now()
     const { stdout, stderr } = await execAsync(pythonCommand)
 
@@ -126,7 +129,15 @@ export const getResponse = async (req, res) => {
 
     const elapsedMs = Date.now() - startTime
 
-    const { response, reference, question: questionPy, category } = responseData
+    const { response, reference, question: questionPy, category, chatName } = responseData
+
+    let newChat = null
+
+    if (!chatId)
+      newChat = await createChatModel({
+        userId: sub,
+        name: chatName,
+      })
 
     logger.info(questionPy, { title: 'Pregunta enviada' })
     logger.info(category, { title: 'Categoría Recibida' })
@@ -135,7 +146,7 @@ export const getResponse = async (req, res) => {
       content: response,
       source: 'assistant',
       reference,
-      chatId,
+      chatId: newChat?.chatid ?? chatId,
     })
 
     message.responseTime = elapsedMs
@@ -144,6 +155,7 @@ export const getResponse = async (req, res) => {
 
     return res.status(201).json({
       message: 'Respuesta obtenida.',
+      newChat: newChat !== null,
       chatMessage: message,
     })
   } catch (err) {

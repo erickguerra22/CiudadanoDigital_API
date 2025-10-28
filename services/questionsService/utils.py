@@ -94,6 +94,25 @@ def ask_llm(prompt: str):
     )
     return response.choices[0].message.content.strip()
 
+def get_chat_name(question:str):
+    """Define el nombre del chat si no se ha definido"""
+    prompt = f"""
+    Tengo la siguiente pregunta:
+    {question}.
+    NO NECESITO QUE LA RESPONDAS. Asígnale un nombre al chat en base a esta primera pregunta.
+    
+    Responde SOLO con el nombre del chat.
+    """
+    try:
+        response = openaiClient.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        chatName = response.choices[0].message.content.strip()
+        return chatName
+    except Exception:
+        return None
+
 
 def rag_query(question: str, category: str=None,):
     """Pipeline completo RAG: recuperar contexto, generar prompt, obtener respuesta."""
