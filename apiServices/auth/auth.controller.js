@@ -133,7 +133,7 @@ export const verifyRecoveryCode = async (req, res) => {
       return res.status(400).json({ error: 'Código inválido o expirado.' })
     }
 
-    const isValid = await bcrypt.compare(code, codeData.codehash)
+    const isValid = await bcrypt.compare(code.toString(), codeData.codehash)
     if (!isValid) {
       return res.status(400).json({ error: 'Código inválido o expirado.' })
     }
