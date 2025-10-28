@@ -17,8 +17,8 @@ TOP_K = os.getenv("PINECONE_TOP_K", 5)
 
 def main(question: str):
     category = classify_query_category(question)
-    [respuesta, referencias] = rag_query(question, category)
     chatName = get_chat_name(question) if(chat == 'undefined') else chat
+    [respuesta, referencias] = rag_query(question, category)
     return {
         "response": respuesta,
         "reference":", ".join(list(dict.fromkeys(referencias))),
