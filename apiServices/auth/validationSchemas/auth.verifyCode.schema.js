@@ -7,12 +7,10 @@ export const verifyCodeSchema = Joi.object({
     'any.required': "El campo 'email' es obligatorio.",
   }),
 
-  code: Joi.string()
-    .pattern(/^\d{6}$/)
-    .required()
-    .messages({
-      'string.base': "El campo 'code' debe ser un String.",
-      'string.pattern.base': "El campo 'code' debe ser un número de 6 dígitos.",
-      'any.required': "El campo 'code' es obligatorio.",
-    }),
+  code: Joi.number().integer().min(100000).max(999999).required().messages({
+    'number.base': "El campo 'code' debe ser un número.",
+    'number.min': "El campo 'code' debe tener 6 dígitos.",
+    'number.max': "El campo 'code' debe tener 6 dígitos.",
+    'any.required': "El campo 'code' es obligatorio.",
+  }),
 })
