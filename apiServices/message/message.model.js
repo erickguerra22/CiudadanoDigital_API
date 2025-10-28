@@ -44,7 +44,7 @@ export const getChatMessagesModel = async ({ chatId, limit, offset }) => {
     throw new CustomError('El chat está vacío.', 404)
   }
 
-  return rows
+  return rows.reverse()
 }
 
 export const getMessageById = async (messageId) => {
