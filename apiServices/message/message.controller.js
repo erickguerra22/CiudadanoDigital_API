@@ -142,14 +142,14 @@ export const getResponse = async (req, res) => {
     logger.info(questionPy, { title: 'Pregunta enviada' })
     logger.info(category, { title: 'Categoría Recibida' })
 
+    const responseTime = elapsedMs
     const message = await createMessageModel({
       content: response,
       source: 'assistant',
       reference,
       chatId: newChat?.chatid ?? chatId,
+      responseTime: responseTime,
     })
-
-    message.responseTime = elapsedMs
 
     if (!message) throw new CustomError('Ocurrió un error al guardar el mensaje', 500)
 
