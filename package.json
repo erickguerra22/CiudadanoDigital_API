@@ -35,6 +35,8 @@
     "lint": "eslint ./**/*.js --fix"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.919.0",
+    "@aws-sdk/s3-request-presigner": "^3.919.0",
     "bcryptjs": "^3.0.2",
     "child_process": "^1.0.2",
     "config": "^4.1.1",
@@ -47,6 +49,7 @@
     "js-sha256": "^0.11.1",
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.30.1",
+    "multer": "^2.0.2",
     "nodemailer": "^7.0.10",
     "pg": "^8.16.3",
     "uuid": "^13.0.0"
