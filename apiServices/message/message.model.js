@@ -31,7 +31,8 @@ export const getChatMessagesModel = async ({ chatId, limit, offset }) => {
       content,
       reference,
       timestamp,
-      assigned
+      assigned,
+      responsetime
     FROM Mensaje
     WHERE chatId = $1
       ORDER BY TIMESTAMP desc
