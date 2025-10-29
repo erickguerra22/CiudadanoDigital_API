@@ -158,7 +158,7 @@ export const verifyRecoveryCode = async (req, res) => {
     return res.status(200).json({
       token,
       expiresAt,
-      message: `Tienes en ${consts.tokenExpiration.recover_minutes_expiration} ${consts.tokenExpiration.recover_minutes_expiration > 1 ? 'munitos' : 'minuto'} para establecer una nueva contraseña.`,
+      message: `Tienes en ${consts.tokenExpiration.recover_minutes_expiration} ${consts.tokenExpiration.recover_minutes_expiration > 1 ? 'minutos' : 'minuto'} para establecer una nueva contraseña.`,
     })
   } catch (err) {
     logger.error(err.message, { title: 'Error en requestRecoveryCode' })
