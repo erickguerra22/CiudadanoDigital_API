@@ -38,7 +38,7 @@ const signRegisterToken = ({ id, name, lastname, email, sex }) =>
   )
 
 const signRecoverPasswordToken = ({ id, name, lastname, email }) => {
-  const expiresAt = moment().add(consts.tokenExpiration.recover_hours_expiration, 'hour').unix()
+  const expiresAt = moment().add(consts.tokenExpiration.recover_minutes_expiration, 'minute').unix()
   const token = jwt.sign(
     {
       id,

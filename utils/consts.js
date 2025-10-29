@@ -10,7 +10,7 @@ const consts = {
     refresh_days_expiration: 3,
     access_hours_expiration: 1,
     register_months_expiration: 3,
-    recover_hours_expiration: 1,
+    recover_minutes_expiration: 15,
   },
   chatsNumberPerPage: 10,
   messagesNumberPerPage: 20,
