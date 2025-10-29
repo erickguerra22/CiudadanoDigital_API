@@ -21,7 +21,7 @@ def main(question: str):
     [respuesta, referencias] = rag_query(question, category)
     return {
         "response": respuesta,
-        "reference":", ".join(list(dict.fromkeys(referencias))),
+        "reference": None if respuesta == "No puedo responder." else ", ".join(list(dict.fromkeys(referencias))),
         "question":question,
         "category":category,
         "chatName":chatName,
