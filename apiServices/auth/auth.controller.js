@@ -148,7 +148,7 @@ export const verifyRecoveryCode = async (req, res) => {
     await sendEmail({
       to: email,
       subject: 'Verificación de código exitosa',
-      html: `<p>Tienes solamente ${consts.tokenExpiration.recover_hours_expiration} ${consts.tokenExpiration.recover_hours_expiration > 1 ? 'horas' : 'hora'} para reestablecer tu contraseña.</p>`,
+      html: `<p>Tienes solamente ${consts.tokenExpiration.recover_minutes_expiration} ${consts.tokenExpiration.recover_minutes_expiration > 1 ? 'horas' : 'hora'} para reestablecer tu contraseña.</p>`,
     })
 
     await deleteRecoveryCode(user.userid)
@@ -156,7 +156,7 @@ export const verifyRecoveryCode = async (req, res) => {
     return res.status(200).json({
       token,
       expiresAt,
-      message: `Este token expira en ${consts.tokenExpiration.recover_hours_expiration} ${consts.tokenExpiration.recover_hours_expiration > 1 ? 'horas' : 'hora'}.`,
+      message: `Tienes en ${consts.tokenExpiration.recover_minutes_expiration} ${consts.tokenExpiration.recover_minutes_expiration > 1 ? 'munitos' : 'minuto'} para establecer una nueva contraseña.`,
     })
   } catch (err) {
     logger.error(err.message, { title: 'Error en requestRecoveryCode' })
