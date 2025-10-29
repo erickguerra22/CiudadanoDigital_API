@@ -19,4 +19,8 @@ module.exports = {
   smtpUser: process.env.SMTP_USER,
   smtpPass: process.env.SMTP_APP_PASS,
   venvPython: process.env.VENV_PYTHON,
+  awsRegion: process.env.AWS_REGION,
+  awsAccessKeyID: process.env.AWS_ACCESS_KEY_ID,
+  awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  bucketName: process.env.S3_BUCKET,
 }
