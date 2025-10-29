@@ -148,7 +148,9 @@ export const verifyRecoveryCode = async (req, res) => {
     await sendEmail({
       to: email,
       subject: 'Verificación de código exitosa',
-      html: `<p>Tienes solamente ${consts.tokenExpiration.recover_minutes_expiration} ${consts.tokenExpiration.recover_minutes_expiration > 1 ? 'horas' : 'hora'} para reestablecer tu contraseña.</p>`,
+      html: `<p>Tienes solamente ${consts.tokenExpiration.recover_minutes_expiration} ${
+        consts.tokenExpiration.recover_minutes_expiration > 1 ? 'minutos' : 'minuto'
+      } para reestablecer tu contraseña.</p>`,
     })
 
     await deleteRecoveryCode(user.userid)
