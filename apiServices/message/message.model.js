@@ -1,17 +1,17 @@
 import { getConnection } from '../../db/connection.js'
 import CustomError from '../../utils/customError.js'
 
-export const createMessageModel = async ({ content, source, reference, chatId }) => {
+export const createMessageModel = async ({ content, source, reference, chatId, responseTime }) => {
   const pool = await getConnection()
   const assigned = chatId !== undefined && chatId !== null
 
   const query = `
-    INSERT INTO Mensaje (content, source, reference, chatId, assigned)
-    VALUES ($1, $2, $3, $4, $5)
-    RETURNING messageId, chatId, source, content, reference, timestamp, assigned;
+    INSERT INTO Mensaje (content, source, reference, chatId, assigned, responsetime)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING messageId, chatId, source, content, reference, timestamp, assigned, responsetime;
   `
 
-  const values = [content, source, reference, chatId, assigned]
+  const values = [content, source, reference, chatId, assigned, responseTime]
 
   const { rows } = await pool.query(query, values)
 
