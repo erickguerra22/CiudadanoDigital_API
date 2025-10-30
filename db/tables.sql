@@ -18,6 +18,10 @@ CREATE TABLE Usuario (
     CONSTRAINT unique_phone UNIQUE (phoneCode, phoneNumber)
 );
 
+ALTER TABLE Usuario ADD COLUMN Rol VARCHAR(100) DEFAULT 'user';
+ALTER TABLE Usuario
+ALTER COLUMN phoneCode TYPE VARCHAR(10);
+
 CREATE TABLE Chat (
     chatId SERIAL PRIMARY KEY,
     userId INT NOT NULL,
@@ -87,3 +91,5 @@ CREATE TABLE Documento (
         REFERENCES Usuario(userId)
         ON DELETE SET NULL
 );
+
+ALTER TABLE Documento DROP COLUMN source;

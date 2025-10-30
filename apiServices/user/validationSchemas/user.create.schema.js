@@ -14,11 +14,9 @@ export const createUserSchema = Joi.object({
 
   phoneNumber: Joi.string()
     .pattern(/^[0-9]+$/)
-    .length(8)
     .required()
     .messages({
       'string.base': "El campo 'phoneNumber' debe ser un String.",
-      'string.length': "El campo 'phoneNumber' debe tener exactamente 8 dígitos.",
       'string.pattern.base': "El campo 'phoneNumber' debe contener solo números.",
       'any.required': "El campo 'phoneNumber' es obligatorio.",
     }),
