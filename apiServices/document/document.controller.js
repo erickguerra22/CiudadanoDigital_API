@@ -24,72 +24,103 @@ export const uploadDocument = async (req, res) => {
     if (role != 'admin') throw new CustomError('No tienes permiso para subir documentos', 403)
     if (!file) throw new CustomError('No se envió ningún archivo', 400)
 
-    const fileName = `documents/${Date.now()}-${file.originalname}`
-    await uploadToS3(file.buffer, fileName, file.mimetype)
-
-    const localPath = resolve(dirPath, `../../tmp/${file.originalname}`)
-    import('fs').then(({ writeFileSync, mkdirSync, existsSync }) => {
-      const tmpDir = resolve(dirPath, '../../tmp')
-      if (!existsSync(tmpDir)) mkdirSync(tmpDir, { recursive: true })
-      writeFileSync(localPath, file.buffer)
-    })
-
     res.status(202).json({
       message: 'Documento recibido. Al terminar el procesamiento, serás notificado mediante el correo electrónico registrado.',
     })
 
-    const venvPython = config.get('venvPython')
-    const pythonPath = resolve(dirPath, `../../ciudadano_digital/${venvPython}`)
-    const servicePath = resolve(dirPath, '../../services/processDocumentService/main.py')
+    setImmediate(async () => {
+      try {
+        const fileName = `documents/${Date.now()}-${file.originalname}`
+        await uploadToS3(file.buffer, fileName, file.mimetype)
 
-    const commandArgs = [servicePath, localPath, docname, author, year, fileName]
-    const python = spawn(pythonPath, commandArgs, {
-      cwd: process.cwd(),
-      enf: process.env,
-      stdio: ['ignore', 'pipe', 'pipe'],
+        const localPath = resolve(dirPath, `../../tmp/${file.originalname}`)
+        const fs = await import('fs')
+        const tmpDir = resolve(dirPath, '../../tmp')
+
+        if (!fs.existsSync(tmpDir)) {
+          fs.mkdirSync(tmpDir, { recursive: true })
+        }
+        fs.writeFileSync(localPath, file.buffer)
+
+        const venvPython = config.get('venvPython')
+        const pythonPath = resolve(dirPath, `../../ciudadano_digital/${venvPython}`)
+        const servicePath = resolve(dirPath, '../../services/processDocumentService/main.py')
+
+        const commandArgs = [servicePath, localPath, docname, author, year, fileName]
+
+        const python = spawn(pythonPath, commandArgs, {
+          stdio: ['ignore', 'pipe', 'pipe'],
+          detached: false,
+          env: { ...process.env },
+          shell: false,
+        })
+
+        let output = ''
+        let errorOutput = ''
+        python.stdout.on('data', (data) => {
+          output += data.toString()
+        })
+
+        python.stderr.on('data', (data) => {
+          errorOutput += data.toString()
+          logger.error(data.toString(), { title: 'Python stderr' })
+        })
+
+        python.on('error', (error) => {
+          logger.error(error.message, { title: 'Spawn error' })
+        })
+
+        python.on('close', async (code) => {
+          // Limpiar archivo temporal
+          try {
+            fs.unlinkSync(localPath)
+          } catch (e) {
+            logger.error('Error al eliminar archivo temporal', e)
+          }
+          if (code !== 0) {
+            logger.error(`Python terminó con error: ${code}`, { title: 'Error al ejecutar python', stderr: errorOutput })
+            await sendEmail({
+              to: email,
+              subject: 'Error al procesar documento',
+              html: `<p>El documento <b>${docname}</b> no pudo procesarse ni subirse al servidor correctamente.</p>`,
+            })
+            return
+          }
+          try {
+            const responseData = JSON.parse(output)
+            const { success, category } = responseData
+
+            if (success) {
+              await saveDocumentModel({
+                userId: sub,
+                category,
+                documentUrl: fileName,
+                title: docname,
+                author,
+                year,
+              })
+              await sendEmail({
+                to: email,
+                subject: 'Tu documento fue procesado correctamente',
+                html: `<p>El documento <b>${docname}</b> fue indexado exitosamente en el sistema.</p>`,
+              })
+            } else {
+              await sendEmail({
+                to: email,
+                subject: 'Error al procesar documento',
+                html: `<p>El documento <b>${docname}</b> no pudo procesarse ni subirse al servidor correctamente.</p>`,
+              })
+            }
+          } catch (error) {
+            logger.error(error.message, { title: 'Error post-procesamiento Python' })
+          }
+        })
+      } catch (error) {
+        logger.error(error.message, { title: 'Error en procesamiento en segundo plano' })
+      }
     })
 
     // Versión en segundo plano:
-    let output = ''
-    python.stdout.on('data', (data) => {
-      output += data.toString()
-    })
-
-    python.stderr.on('data', (data) => {
-      logger.error(data.toString(), { title: 'Error al procesar el documento' })
-    })
-
-    python.on('close', async (code) => {
-      try {
-        if (code !== 0) throw new Error('Python terminó con error')
-        const responseData = JSON.parse(output)
-        const { success, category } = responseData
-
-        if (success) {
-          await saveDocumentModel({
-            userId: sub,
-            category,
-            documentUrl: fileName,
-            title: docname,
-            author,
-            year,
-          })
-          await sendEmail({
-            to: email,
-            subject: 'Tu documento fue procesado correctamente',
-            html: `<p>El documento <b>${docname}</b> fue indexado exitosamente en el sistema.</p>`,
-          })
-        } else {
-          await sendEmail({
-            to: email,
-            subject: 'Error al procesar documento',
-            html: `<p>El documento <b>${docname}</b> no pudo procesarse ni subirse al servidor correctamente.</p>`,
-          })
-        }
-      } catch (error) {
-        logger.error(error.message, { title: 'Error post-procesamiento Python' })
-      }
-    })
 
     // Versión síncrona:
 
@@ -181,13 +212,7 @@ export const deleteDocument = async (req, res) => {
 
     // Versión en segundo plano:
     const commandArgs = [servicePath, document.document_url]
-    const python = spawn(pythonPath, commandArgs, {
-      detached: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      cwd: process.cwd(),
-    })
-
-    python.unref()
+    const python = spawn(pythonPath, commandArgs, { stdio: ['ignore', 'pipe', 'pipe'] })
 
     let output = ''
     python.stdout.on('data', (data) => {
