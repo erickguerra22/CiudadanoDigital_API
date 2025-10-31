@@ -39,7 +39,13 @@ export const uploadDocument = async (req, res) => {
     const servicePath = resolve(dirPath, '../../services/processDocumentService/main.py')
 
     const commandArgs = [servicePath, localPath, docname, author, year, fileName]
-    const python = spawn(pythonPath, commandArgs, { stdio: ['ignore', 'pipe', 'pipe'] })
+    const python = spawn(pythonPath, commandArgs, {
+      detached: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: process.cwd(),
+    })
+
+    python.unref()
 
     // Versión en segundo plano:
     let output = ''
@@ -175,8 +181,15 @@ export const deleteDocument = async (req, res) => {
     const pythonPath = resolve(dirPath, `../../ciudadano_digital/${venvPython}`)
     const servicePath = resolve(dirPath, '../../services/processDocumentService/main_delete.py')
 
+    // Versión en segundo plano:
     const commandArgs = [servicePath, document.document_url]
-    const python = spawn(pythonPath, commandArgs, { stdio: ['ignore', 'pipe', 'pipe'] })
+    const python = spawn(pythonPath, commandArgs, {
+      detached: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: process.cwd(),
+    })
+
+    python.unref()
 
     let output = ''
     python.stdout.on('data', (data) => {
@@ -215,6 +228,8 @@ export const deleteDocument = async (req, res) => {
     return res.status(200).json({
       message: 'Solicitud recibida. Al terminar el proceso de eliminación, serás notificado mediante el correo electrónico registrado.',
     })
+
+    // Versión síncrona:
 
     // const command = `"${pythonPath}" "${servicePath}" "${document.document_url}"`
     // const { stdout, stderr } = await execAsync(command)
