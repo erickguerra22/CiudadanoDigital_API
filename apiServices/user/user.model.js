@@ -8,7 +8,7 @@ export const createUser = async (userData) => {
   const query = `
     INSERT INTO Usuario (email, names, lastnames, birthdate, phoneCode, phoneNumber, password)
     VALUES ($1, $2, $3, $4, $5, $6, $7)
-    RETURNING userId, email, names, lastnames, birthdate, phoneCode, phoneNumber;
+    RETURNING userId, email, names, lastnames, birthdate, phoneCode, phoneNumber, role;
   `
 
   const values = [email, names, lastnames, birthdate, phoneCode, phoneNumber, passwordHash]
@@ -31,7 +31,8 @@ export const getUserById = async (userId) => {
       lastnames, 
       birthdate, 
       phoneCode, 
-      phoneNumber
+      phoneNumber,
+      role
     FROM Usuario
     WHERE userId = $1
     LIMIT 1;`
@@ -61,7 +62,7 @@ export const updateUserModel = async (userId, userData) => {
       phoneCode = $5, 
       phoneNumber = $6
     where userid = $7
-    RETURNING userId, email, names, lastnames, birthdate, phoneCode, phoneNumber;
+    RETURNING userId, email, names, lastnames, birthdate, phoneCode, phoneNumber, role;
   `
 
   const values = [
@@ -92,7 +93,8 @@ export const getUserByEmail = async (email) => {
       lastnames, 
       birthdate, 
       phoneCode, 
-      phoneNumber
+      phoneNumber,
+      role
     FROM Usuario
     WHERE email = $1
     LIMIT 1;`
