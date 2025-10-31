@@ -94,3 +94,6 @@ CREATE TABLE Documento (
 );
 
 ALTER TABLE Documento DROP COLUMN source;
+ALTER TABLE Documento ADD COLUMN title VARCHAR(200);
+ALTER TABLE Documento ADD COLUMN author VARCHAR(200);
+ALTER TABLE Documento ADD COLUMN year INT;

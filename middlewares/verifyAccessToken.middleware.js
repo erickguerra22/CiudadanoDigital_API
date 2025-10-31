@@ -30,6 +30,7 @@ export const verifyAccessToken = async (req, res, next) => {
       sub: decoded.userId,
       deviceId: decoded.deviceId,
       email: decoded.email,
+      role: decoded.role,
     }
 
     next()
