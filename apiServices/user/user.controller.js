@@ -40,6 +40,7 @@ export const registerUser = async (req, res) => {
       deviceId,
       lastnames: user.lastnames,
       refreshId: refreshTokenId,
+      role: user.role,
     })
 
     await storeRefresh(user.userid, deviceId, refreshTokenHash, moment().add(consts.tokenExpiration.refresh_days_expiration, 'day').toDate(), refreshTokenId)

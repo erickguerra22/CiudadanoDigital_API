@@ -10,7 +10,7 @@ import { signAccessToken } from '../../middlewares/jwt.js'
 export const loginModel = async (email, password, deviceId) => {
   const pool = await getConnection()
   const { rows } = await pool.query(
-    `SELECT userId, email, names, lastnames, password
+    `SELECT userId, email, names, lastnames, password, role
              FROM Usuario WHERE email = $1`,
     [email]
   )
@@ -34,6 +34,7 @@ export const loginModel = async (email, password, deviceId) => {
     names: user.names,
     lastnames: user.lastnames,
     refreshId: refreshTokenId,
+    role: user.role,
   })
 
   await revokeToken(user.userid, deviceId)
@@ -88,7 +89,7 @@ export const refreshTokenModel = async (userId, deviceId, refreshToken) => {
   }
 
   const pool = await getConnection()
-  const { rows } = await pool.query(`SELECT userId, email, names, lastnames FROM Usuario WHERE userId = $1`, [userId])
+  const { rows } = await pool.query(`SELECT userId, email, names, lastnames, role FROM Usuario WHERE userId = $1`, [userId])
 
   const user = rows[0] || null
 
@@ -106,6 +107,7 @@ export const refreshTokenModel = async (userId, deviceId, refreshToken) => {
     names: user.names,
     lastnames: user.lastnames,
     refreshId: refreshTokenId,
+    role: user.role,
   })
 
   await revokeToken(user.userid, deviceId)
