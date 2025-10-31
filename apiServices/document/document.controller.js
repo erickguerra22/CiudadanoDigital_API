@@ -82,7 +82,7 @@ export const uploadDocument = async (req, res) => {
             await sendEmail({
               to: email,
               subject: 'Error al procesar documento',
-              html: `<p>El documento <b>${docname}</b> no pudo procesarse ni subirse al servidor correctamente ${errorOutput}.</p>`,
+              html: `<p>El documento <b>${docname}</b> no pudo procesarse ni subirse al servidor correctamente. ${errorOutput}</p>`,
             })
             return
           }
@@ -105,7 +105,6 @@ export const uploadDocument = async (req, res) => {
                 html: `<p>El documento <b>${docname}</b> fue indexado exitosamente en el sistema.</p>`,
               })
             } else {
-              logger.error('El documento no se procesó correctamente', { title: 'Error en procesamiento de documento' })
               await sendEmail({
                 to: email,
                 subject: 'Error al procesar documento',
