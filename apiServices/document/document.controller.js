@@ -28,6 +28,7 @@ export const uploadDocument = async (req, res) => {
       message: 'Documento recibido. Al terminar el procesamiento, serás notificado mediante el correo electrónico registrado.',
     })
 
+    // Versión en segundo plano:
     setImmediate(async () => {
       try {
         const fileName = `documents/${Date.now()}-${file.originalname}`
@@ -82,7 +83,7 @@ export const uploadDocument = async (req, res) => {
             await sendEmail({
               to: email,
               subject: 'Error al procesar documento',
-              html: `<p>El documento <b>${docname}</b> no pudo procesarse ni subirse al servidor correctamente. ${errorOutput}</p>`,
+              html: `<p>El documento <b>${docname}</b> no pudo procesarse ni subirse al servidor correctamente.</p>`,
             })
             return
           }
@@ -105,10 +106,11 @@ export const uploadDocument = async (req, res) => {
                 html: `<p>El documento <b>${docname}</b> fue indexado exitosamente en el sistema.</p>`,
               })
             } else {
+              logger.error(`El procesamiento de Python indicó un fallo: ${responseData}`, { title: 'Fallo en procesamiento Python' })
               await sendEmail({
                 to: email,
                 subject: 'Error al procesar documento',
-                html: `<p>El documento <b>${docname}</b> no pudo procesarse ni subirse al servidor correctamente. ${responseData}</p>`,
+                html: `<p>El documento <b>${docname}</b> no pudo procesarse ni subirse al servidor correctamente.</p>`,
               })
             }
           } catch (error) {
@@ -119,8 +121,6 @@ export const uploadDocument = async (req, res) => {
         logger.error(error.message, { title: 'Error en procesamiento en segundo plano' })
       }
     })
-
-    // Versión en segundo plano:
 
     // Versión síncrona:
 
@@ -204,52 +204,72 @@ export const deleteDocument = async (req, res) => {
 
     await deleteFromS3(document.document_url)
 
-    await deleteDocumentModel(documentId)
-
-    const venvPython = config.get('venvPython')
-    const pythonPath = resolve(dirPath, `../../ciudadano_digital/${venvPython}`)
-    const servicePath = resolve(dirPath, '../../services/processDocumentService/main_delete.py')
+    res.status(200).json({
+      message: 'Solicitud recibida. Al terminar el proceso de eliminación, serás notificado mediante el correo electrónico registrado.',
+    })
 
     // Versión en segundo plano:
-    const commandArgs = [servicePath, document.document_url]
-    const python = spawn(pythonPath, commandArgs, { stdio: ['ignore', 'pipe', 'pipe'] })
-
-    let output = ''
-    python.stdout.on('data', (data) => {
-      output += data.toString()
-    })
-
-    python.stderr.on('data', (data) => {
-      logger.error(data.toString(), { title: 'Error al eliminar documento' })
-    })
-
-    python.on('close', async (code) => {
+    setImmediate(async () => {
       try {
-        if (code !== 0) throw new Error('Python terminó con error al eliminar del documento')
-        const responseData = JSON.parse(output)
-        const { success, error } = responseData
+        const venvPython = config.get('venvPython')
+        const pythonPath = resolve(dirPath, `../../ciudadano_digital/${venvPython}`)
+        const servicePath = resolve(dirPath, '../../services/processDocumentService/main_delete.py')
+        const commandArgs = [servicePath, document.document_url]
 
-        if (success) {
-          await sendEmail({
-            to: email,
-            subject: 'Documento eliminado correctamente',
-            html: `<p>El documento <b>${document.title}</b> fue removido exitosamente del sistema.</p>`,
-          })
-        } else {
-          logger.error(error, { title: 'Error al eliminar documento del índice' })
-          await sendEmail({
-            to: email,
-            subject: 'Error al eliminar documento',
-            html: `<p>El documento <b>${document.title}</b> fue removido solamente de la base de datos. Persiste en el índice.</p>`,
-          })
-        }
+        const python = spawn(pythonPath, commandArgs, {
+          stdio: ['ignore', 'pipe', 'pipe'],
+          detached: false,
+          env: { ...process.env },
+          shell: false,
+        })
+
+        let output = ''
+        let errorOutput = ''
+        python.stdout.on('data', (data) => {
+          output += data.toString()
+        })
+
+        python.stderr.on('data', (data) => {
+          errorOutput += data.toString()
+          logger.error(data.toString(), { title: 'Error al eliminar documento' })
+        })
+
+        python.on('close', async (code) => {
+          if (code !== 0) {
+            logger.error(`Python terminó con error: ${code}`, { title: 'Error al ejecutar python', stderr: errorOutput })
+            await sendEmail({
+              to: email,
+              subject: 'Error al eliminar documento',
+              html: `<p>El documento <b>${document.title}</b> fue removido solamente de la base de datos. Persiste en el índice.</p>`,
+            })
+            return
+          }
+          try {
+            const responseData = JSON.parse(output)
+            const { success, error } = responseData
+
+            if (success) {
+              await deleteDocumentModel(documentId)
+              await sendEmail({
+                to: email,
+                subject: 'Documento eliminado correctamente',
+                html: `<p>El documento <b>${document.title}</b> fue removido exitosamente del sistema.</p>`,
+              })
+            } else {
+              logger.error(error, { title: 'Error al eliminar documento del índice' })
+              await sendEmail({
+                to: email,
+                subject: 'Error al eliminar documento',
+                html: `<p>El documento <b>${document.title}</b> fue removido solamente de la base de datos. Persiste en el índice.</p>`,
+              })
+            }
+          } catch (error) {
+            logger.error(error.message, { title: 'Error post-procesamiento Python al eliminar documento' })
+          }
+        })
       } catch (error) {
-        logger.error(error.message, { title: 'Error post-procesamiento Python al eliminar documento' })
+        logger.error(error.message, { title: 'Error en proceso en segundo plano al eliminar documento' })
       }
-    })
-
-    return res.status(200).json({
-      message: 'Solicitud recibida. Al terminar el proceso de eliminación, serás notificado mediante el correo electrónico registrado.',
     })
 
     // Versión síncrona:
