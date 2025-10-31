@@ -60,7 +60,7 @@ def retrieve_context(query: str, category_filter: str=None, top_k: int=TOP_K):
         year = meta.get("year", "")
         institution = meta.get("institution", "")
         category = meta.get("category", "")
-        sources.append(source)
+        sources.append(f"{source} ({institution}, {int(year)})")
         context_fragments.append(
             f"[{category}] {fragment_text} (Fuente: {source}, {institution}, {year})"
         )
