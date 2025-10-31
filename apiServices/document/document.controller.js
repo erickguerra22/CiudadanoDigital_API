@@ -34,18 +34,20 @@ export const uploadDocument = async (req, res) => {
       writeFileSync(localPath, file.buffer)
     })
 
+    res.status(202).json({
+      message: 'Documento recibido. Al terminar el procesamiento, serás notificado mediante el correo electrónico registrado.',
+    })
+
     const venvPython = config.get('venvPython')
     const pythonPath = resolve(dirPath, `../../ciudadano_digital/${venvPython}`)
     const servicePath = resolve(dirPath, '../../services/processDocumentService/main.py')
 
     const commandArgs = [servicePath, localPath, docname, author, year, fileName]
     const python = spawn(pythonPath, commandArgs, {
-      detached: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
       cwd: process.cwd(),
+      enf: process.env,
+      stdio: ['ignore', 'pipe', 'pipe'],
     })
-
-    python.unref()
 
     // Versión en segundo plano:
     let output = ''
@@ -87,10 +89,6 @@ export const uploadDocument = async (req, res) => {
       } catch (error) {
         logger.error(error.message, { title: 'Error post-procesamiento Python' })
       }
-    })
-
-    return res.status(202).json({
-      message: 'Documento recibido. Al terminar el procesamiento, serás notificado mediante el correo electrónico registrado.',
     })
 
     // Versión síncrona:
