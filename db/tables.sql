@@ -18,7 +18,8 @@ CREATE TABLE Usuario (
     CONSTRAINT unique_phone UNIQUE (phoneCode, phoneNumber)
 );
 
-ALTER TABLE Usuario ADD COLUMN Rol VARCHAR(100) DEFAULT 'user';
+ALTER TABLE Usuario ADD COLUMN role VARCHAR(100) DEFAULT 'user'; -- 'user', 'admin'
+ALTER TABLE Usuario DROP COLUMN Rol;
 ALTER TABLE Usuario
 ALTER COLUMN phoneCode TYPE VARCHAR(10);
 
