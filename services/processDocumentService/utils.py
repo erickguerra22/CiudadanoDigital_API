@@ -10,9 +10,19 @@ import docx
 from dotenv import load_dotenv
 import fitz
 import re
+import mimetypes
+from pptx import Presentation
+from pdf2image import convert_from_path
+from PIL import Image
+import pytesseract
+
+load_dotenv()
+
+# Escrita directamente sí funciona
+# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+pytesseract.pytesseract.tesseract_cmd = os.getenv("TESSERACT_CMD", pytesseract.pytesseract.tesseract_cmd)
 
 # CONFIGURACIÓN INICIAL
-load_dotenv()
 
 EMBEDDING_MODEL = "text-embedding-3-small"
 INDEX_NAME = "ciudadano-digital"
@@ -100,20 +110,51 @@ def clean_text(text: str) -> str:
 
 
 def extract_text_from_file(file_path: str) -> str:
-    """Extrae texto sin importar el tipo de archivo."""
+    """Extrae texto de archivos PDF, Word, PowerPoint, texto plano o imágenes (usando OCR)."""
     mime_type, _ = mimetypes.guess_type(file_path)
+
+    # --- PDF ---
     if mime_type == "application/pdf":
         text = ""
         with fitz.open(file_path) as pdf:
             for page in pdf:
-                text += page.get_text()
-        return text
+                page_text = page.get_text()
+                # Si no hay texto, intentamos OCR en la imagen de la página
+                if not page_text.strip():
+                    pix = page.get_pixmap()
+                    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                    page_text = pytesseract.image_to_string(img)
+                text += page_text + "\n"
+        return text.strip()
 
-    elif mime_type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"]:
+    # --- Documentos Word ---
+    elif mime_type in [
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+    ]:
         doc = docx.Document(file_path)
-        return "\n".join([p.text for p in doc.paragraphs])
+        return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
 
-    elif mime_type.startswith("text/"):
+    # --- Presentaciones PowerPoint ---
+    elif mime_type == "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        prs = Presentation(file_path)
+        text = []
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if hasattr(shape, "text"):
+                    text.append(shape.text)
+        return "\n".join(t for t in text if t.strip())
+
+    elif mime_type == "application/vnd.ms-powerpoint":
+        raise ValueError("Archivos .ppt antiguos no están soportados. Convierte a .pptx primero.")
+
+    # --- Imágenes (JPG, PNG, etc.) ---
+    elif mime_type and mime_type.startswith("image/"):
+        img = Image.open(file_path)
+        return pytesseract.image_to_string(img)
+
+    # --- Archivos de texto ---
+    elif mime_type and mime_type.startswith("text/"):
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
             return f.read()
 

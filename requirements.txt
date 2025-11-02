@@ -9,3 +9,7 @@ PyPDF2
 langchain
 PyMuPDF
 langchain_text_splitters
+python-pptx
+pytesseract
+Pillow
+pdf2image
