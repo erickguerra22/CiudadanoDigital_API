@@ -1,6 +1,38 @@
 import { getConnection } from '../../db/connection.js'
 import CustomError from '../../utils/customError.js'
 
+export const getCategoryByDescription = async (description) => {
+  const pool = await getConnection()
+
+  const query = `
+    SELECT categoryid
+    FROM Categoria
+    WHERE descripcion = $1;
+  `
+
+  const values = [description]
+
+  const { rows } = await pool.query(query, values)
+
+  if (!rows || rows.length === 0) {
+    const insertQuery = `
+      INSERT INTO Categoria (descripcion)
+      VALUES ($1)
+      RETURNING categoryid;
+    `
+    const insertValues = [description]
+    const insertResult = await pool.query(insertQuery, insertValues)
+
+    if (!insertResult.rows || insertResult.rows.length === 0) {
+      throw new CustomError('No se pudo crear la categoría.', 400)
+    }
+
+    return insertResult.rows[0].categoryid
+  }
+
+  return rows[0].categoryid
+}
+
 export const saveDocumentModel = async ({ userId, category, documentUrl, title, author, year }) => {
   const pool = await getConnection()
 

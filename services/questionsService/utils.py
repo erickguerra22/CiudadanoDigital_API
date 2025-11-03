@@ -58,11 +58,21 @@ def retrieve_context(query: str, category_filter: str=None, top_k: int=TOP_K):
         fragment_text = meta.get("text", "")
         source = meta.get("source", "Desconocido")
         year = meta.get("year", "")
-        institution = meta.get("institution", "")
+        author = meta.get("author", "")
         category = meta.get("category", "")
-        sources.append(f"{source} ({institution}, {int(year)})")
+        
+        try:
+            year_int = int(year)
+        except (ValueError, TypeError):
+            year_int = None
+        
+        if year_int is not None:
+            sources.append(f"{source} ({author}, {year_int})")
+        else:
+            sources.append(f"{source} ({author})")
+            
         context_fragments.append(
-            f"[{category}] {fragment_text} (Fuente: {source}, {institution}, {year})"
+            f"[{category}] {fragment_text} (Fuente: {source}, {author}, {year})"
         )
     return [context_fragments, sources]
 
@@ -71,8 +81,14 @@ def build_rag_prompt(question: str, context_fragments: list):
     """Construye el prompt combinando contexto y pregunta."""
     context_text = "\n\n".join(context_fragments)
     prompt = f"""
-Usa el siguiente contexto para responder a la pregunta de manera clara y completa. 
-Si el contexto no responde, simplemente dí que no puedes responder.
+    Tu rol es el de un asistente digital dedicado al acompañamiento informal en educación enfocada en valores morales, formación ciudadana y civismo, para estudiantes de entre 14 y 20 años de edad. Se te permite ser atento con los usuarios, responder saludos, agradecimientos y despedidas de manera cordial. Pero cuando se te haga una pregunta o consutla, debes responder utilizando SOLAMENTE el contexto proporcionado a continuación.
+    
+Usa el siguiente contexto para analizar y responder a la consulta de manera clara y completa. Sé estricto con utilizar SOLAMENTE el contexto dado para sustentar tu respuesta, sin hacer suposiciones externas, pero sí un análisis profundo para dar una respuesta útil y bien fundamentada.
+Si el contexto no es suficiente para responder la pregunta, simplemente dí que no puedes responder.
+
+Cualquier solicitud que no esté relacionada con el contexto debe ser respondida con "No puedo responder."
+
+Al final, en una sección diferenciada como "::Preguntas::", debes darme una serie de preguntas sugeridas para continuar con el tema de la conversación (no más de 3 preguntas).
 
 Contexto:
 {context_text}
@@ -93,6 +109,7 @@ def ask_llm(prompt: str):
         temperature=0.2
     )
     return response.choices[0].message.content.strip()
+
 
 def get_chat_name(question:str):
     """Define el nombre del chat si no se ha definido"""

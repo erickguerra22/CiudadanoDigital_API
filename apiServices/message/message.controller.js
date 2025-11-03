@@ -127,6 +127,8 @@ export const getResponse = async (req, res) => {
       throw new CustomError('Respuesta inválida del servicio Python')
     }
 
+    logger.info(responseData, { title: 'Respuesta del servicio Python' })
+
     const elapsedMs = Date.now() - startTime
 
     const { response, reference, question: questionPy, category, chatName } = responseData

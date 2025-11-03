@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS CodigoRecuperacion;
 DROP TABLE IF EXISTS Mensaje;
 DROP TABLE IF EXISTS Chat;
 DROP TABLE IF EXISTS Usuario;
+DROP TABLE IF EXISTS Categoria;
 CREATE TABLE Usuario (
     userId SERIAL PRIMARY KEY,
     email VARCHAR(254) UNIQUE NOT NULL,
@@ -82,15 +83,23 @@ CREATE TABLE CodigoRecuperacion (
         ON DELETE CASCADE
 );
 
+CREATE TABLE Categoria(
+	categoryId SERIAL PRIMARY KEY,
+	descripcion VARCHAR(100) NOT NULL
+)
+
 CREATE TABLE Documento (
     documentId SERIAL PRIMARY KEY,
     userId INT,
     source VARCHAR(50) NOT NULL CHECK (source IN ('user', 'system', 'external')),
-    category VARCHAR(50),
+    category INT,
     document_url TEXT NOT NULL,
     CONSTRAINT fk_documento_usuario FOREIGN KEY (userId)
         REFERENCES Usuario(userId)
-        ON DELETE SET NULL
+        ON DELETE SET NULL,
+	CONSTRAINT fk_documento_categoria FOREIGN KEY (category)
+		REFERENCES Categoria(categoryId)
+		ON DELETE SET NULL
 );
 
 ALTER TABLE Documento DROP COLUMN source;

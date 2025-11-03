@@ -7,7 +7,7 @@ def main(filepath: str, filename: str, author: str, year: str, remotepath: str):
     return process_and_index_document(
         file_path=filepath,
         source_title=filename,
-        institution=author,
+        author=author,
         year=year,
         identifier=remotepath
     )

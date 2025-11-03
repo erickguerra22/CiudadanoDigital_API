@@ -1,5 +1,5 @@
 import { uploadToS3, getPresignedUrl, deleteFromS3 } from '../../services/s3.service.js'
-import { saveDocumentModel, getDocumentsModel, getDocumentById, deleteDocumentModel } from './document.model.js'
+import { saveDocumentModel, getDocumentsModel, getDocumentById, deleteDocumentModel, getCategoryByDescription } from './document.model.js'
 // import { exec, spawn } from 'child_process'
 import { spawn } from 'child_process'
 // import { promisify } from 'util'
@@ -92,13 +92,15 @@ export const uploadDocument = async (req, res) => {
             const { success, category } = responseData
 
             if (success) {
+              const categoryId = await getCategoryByDescription(category)
+
               await saveDocumentModel({
                 userId: sub,
-                category,
+                categoryId,
                 documentUrl: fileName,
                 title: docname,
                 author,
-                year,
+                year: isNaN(parseInt(year, 10)) ? null : parseInt(year, 10),
               })
               await sendEmail({
                 to: email,
