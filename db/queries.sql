@@ -4,6 +4,8 @@ delete from Mensaje;
 delete from Chat;
 select * from Chat;
 
+select * from Usuario;
+
 select * from Documento order by documentid;
 
 delete from Documento where documentid != 30

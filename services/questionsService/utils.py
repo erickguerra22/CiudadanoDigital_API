@@ -48,7 +48,8 @@ def retrieve_context(query: str, category_filter: str=None, top_k: int=TOP_K):
         vector=query_emb,
         top_k=top_k,
         include_metadata=True,
-        filter=filter_obj
+        filter=filter_obj,
+        namespace="ciudadania"
     )
 
     context_fragments = []

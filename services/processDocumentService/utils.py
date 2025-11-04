@@ -297,7 +297,10 @@ def process_and_index_document(file_path: str, source_title: str, author: str, y
 def delete_document(identifier: str):
     """Elimina todos los fragmentos asociados a un documento en Pinecone."""
     try:
-        index.delete(filter={"document_id": {"$eq": identifier}})
+        index.delete(
+            filter={"document_id": {"$eq": identifier}},
+            namespace="ciudadania"
+        )
         return {"success": True, "deleted_document": identifier, "error":None}
     except Exception as e:
         return {"success": False, "error": str(e), "deleted_document": None}

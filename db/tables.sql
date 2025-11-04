@@ -20,7 +20,6 @@ CREATE TABLE Usuario (
 );
 
 ALTER TABLE Usuario ADD COLUMN role VARCHAR(100) DEFAULT 'user'; -- 'user', 'admin'
-ALTER TABLE Usuario DROP COLUMN Rol;
 ALTER TABLE Usuario
 ALTER COLUMN phoneCode TYPE VARCHAR(10);
 
@@ -70,8 +69,7 @@ ALTER TABLE Sesion ADD COLUMN IF NOT EXISTS revokedAt TIMESTAMP;
 ALTER TABLE Sesion
 ADD COLUMN IF NOT EXISTS refreshId UUID NOT NULL DEFAULT gen_random_uuid();
 
-ALTER TABLE Sesion
-ADD CONSTRAINT IF NOT EXISTS pk_sesion PRIMARY KEY (refreshId);
+ALTER TABLE Sesion ADD CONSTRAINT pk_sesion PRIMARY KEY (refreshId);
 
 CREATE TABLE CodigoRecuperacion (
     userId INT PRIMARY KEY,
@@ -86,7 +84,7 @@ CREATE TABLE CodigoRecuperacion (
 CREATE TABLE Categoria(
 	categoryId SERIAL PRIMARY KEY,
 	descripcion VARCHAR(100) NOT NULL
-)
+);
 
 CREATE TABLE Documento (
     documentId SERIAL PRIMARY KEY,
