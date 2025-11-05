@@ -3,13 +3,14 @@ import json
 from utils import *
 
 
-def main(filepath: str, filename: str, author: str, year: str, remotepath: str):
+def main(filepath: str, filename: str, author: str, year: str, remotepath: str, categories: list):
     return process_and_index_document(
         file_path=filepath,
         source_title=filename,
         author=author,
         year=year,
-        identifier=remotepath
+        identifier=remotepath,
+        categories=categories
     )
 
 
@@ -30,13 +31,19 @@ if __name__ == "__main__":
         print("Por favor, proporciona la ruta al documento.")
         sys.exit(1)
 
+    if len(sys.argv) >= 7:
+        categories = sys.argv[6]
+    else:
+        categories = ""
+
+    categories = categories.split(",") if categories and categories != "" else []
     filePath = sys.argv[1]
     fileName = sys.argv[2]
     author = sys.argv[3]
     year = sys.argv[4]
     remotePath = sys.argv[5]
     
-    result = main(filePath, fileName, author, year, remotePath)
+    result = main(filePath, fileName, author, year, remotePath, categories)
     
     print(json.dumps(result))
     

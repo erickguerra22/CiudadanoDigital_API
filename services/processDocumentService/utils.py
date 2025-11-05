@@ -54,12 +54,13 @@ index = init_pinecone()
 
 
 # FUNCIONES AUXILIARES
-def classify_category(fragment: str) -> str:
-    """Clasifica automáticamente el fragmento en 1 de 6 categorías."""
+def classify_category(fragment: str, categories: list) -> str:
+    """Clasifica automáticamente el fragmento en una categoría."""
     prompt = f"""
     Clasifica el siguiente texto en una de las categorías:
-    [Ética, Civismo, Convivencia, Responsabilidad, Justicia, Participación ciudadana].
-    Responde SOLO con el nombre de la categoría.
+    {categories} o bien, identifica una nueva categoría (dame el nombre de la categoría, no me digas "Nueva categoría") en caso consideres que no aplica dentro de ninguna de las opciones.
+    Tampoco me des categorías compuestas, fuerza al resultado a ser una ÚNICA categoría.
+    Responde SOLO con el nombre de la categoría. No hagas categorías compuestas, dame una única categoría.
 
     Texto: {fragment[:150]}
     """
@@ -69,8 +70,6 @@ def classify_category(fragment: str) -> str:
             messages=[{"role": "user", "content": prompt}]
         )
         category = response.choices[0].message.content.strip()
-        if category not in ["Ética", "Civismo", "Convivencia", "Responsabilidad", "Justicia", "Participación ciudadana"]:
-            category = "General"
         return category
     except Exception:
         return "General"
@@ -236,7 +235,7 @@ def extract_text_from_file(file_path: str) -> str:
 
 
 # INDEXACIÓN DEL DOCUMENTO
-def process_and_index_document(file_path: str, source_title: str, author: str, year: int, identifier: str):
+def process_and_index_document(file_path: str, source_title: str, author: str, year: int, identifier: str, categories: list):
     """Procesa e indexa un documento completo en Pinecone."""
     category = "General"
 
@@ -259,7 +258,7 @@ def process_and_index_document(file_path: str, source_title: str, author: str, y
             # Fragmento vacío, omitido.
             continue
 
-        category = classify_category(frag)
+        category = classify_category(frag, categories)
 
         # Crear embedding
         emb = openai_client.embeddings.create(

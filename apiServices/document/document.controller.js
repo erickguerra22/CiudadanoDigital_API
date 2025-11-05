@@ -1,5 +1,5 @@
 import { uploadToS3, getPresignedUrl, deleteFromS3 } from '../../services/s3.service.js'
-import { saveDocumentModel, getDocumentsModel, getDocumentById, deleteDocumentModel, getCategoryByDescription } from './document.model.js'
+import { saveDocumentModel, getDocumentsModel, getDocumentById, deleteDocumentModel, getCategoryByDescription, getCategories } from './document.model.js'
 // import { exec, spawn } from 'child_process'
 import { spawn } from 'child_process'
 // import { promisify } from 'util'
@@ -38,6 +38,8 @@ export const uploadDocument = async (req, res) => {
         const fs = await import('fs')
         const tmpDir = resolve(dirPath, '../../tmp')
 
+        const categories = await getCategories()
+
         if (!fs.existsSync(tmpDir)) {
           fs.mkdirSync(tmpDir, { recursive: true })
         }
@@ -47,7 +49,7 @@ export const uploadDocument = async (req, res) => {
         const pythonPath = resolve(dirPath, `../../ciudadano_digital/${venvPython}`)
         const servicePath = resolve(dirPath, '../../services/processDocumentService/main.py')
 
-        const commandArgs = [servicePath, localPath, docname, author, year, fileName]
+        const commandArgs = [servicePath, localPath, docname, author, year, fileName, categories.join(',')]
 
         const python = spawn(pythonPath, commandArgs, {
           stdio: ['ignore', 'pipe', 'pipe'],
@@ -96,7 +98,7 @@ export const uploadDocument = async (req, res) => {
 
               await saveDocumentModel({
                 userId: sub,
-                categoryId,
+                category: categoryId,
                 documentUrl: fileName,
                 title: docname,
                 author,

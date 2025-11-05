@@ -108,3 +108,57 @@ export const updateMessageModel = async (messageId, messageData) => {
 
   return rows[0]
 }
+
+export const getChatHistory = async ({ chatId }) => {
+  const pool = await getConnection()
+
+  const query = `
+    SELECT source||'-'||content as message
+      FROM Mensaje
+    WHERE chatid = $1
+    ORDER BY timestamp DESC
+    LIMIT 5;`
+
+  const { rows } = await pool.query(query, [chatId])
+
+  if (!rows || rows.length === 0) {
+    return []
+  }
+
+  return rows.map((r) => r.message)
+}
+
+export const getChatSummary = async ({ chatId }) => {
+  const pool = await getConnection()
+
+  const query = `
+    SELECT content FROM ResumenChat where chatid = $1;`
+
+  const { rows } = await pool.query(query, [chatId])
+
+  if (!rows || rows.length === 0) {
+    return ''
+  }
+
+  return rows[0].content
+}
+
+export const insertNewSummary = async ({ userId, chatId, content }) => {
+  const pool = await getConnection()
+
+  const query = `
+    INSERT INTO ResumenChat (userid, chatid, content)
+      VALUES ($1, $2, $3)
+    ON CONFLICT (userId, chatId)
+      DO UPDATE SET content = EXCLUDED.content
+    RETURNING userid, chatid, content;
+  `
+
+  const values = [userId, chatId, content]
+
+  const { rows } = await pool.query(query, values)
+
+  if (!rows || rows.length === 0) return null
+
+  return rows[0]
+}

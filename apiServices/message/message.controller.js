@@ -1,17 +1,16 @@
-import { createMessageModel, getChatMessagesModel, updateMessageModel } from './message.model.js'
+import { createMessageModel, getChatHistory, getChatMessagesModel, getChatSummary, insertNewSummary, updateMessageModel } from './message.model.js'
 import { createChatModel, getChatById } from '../chat/chat.model.js'
 import { Logger } from '../../utils/logger.js'
 import CustomError from '../../utils/customError.js'
 import config from 'config'
-import { exec } from 'child_process'
-import { promisify } from 'util'
+import { spawn } from 'child_process'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
+import { getCategories, getCategoryByDescription } from '../document/document.model.js'
 
 const filePath = fileURLToPath(import.meta.url)
 const dirPath = dirname(filePath)
 
-const execAsync = promisify(exec)
 const logger = new Logger({ filename: 'message-controller.log' })
 
 export const createMessage = async (req, res) => {
@@ -104,61 +103,85 @@ export const getResponse = async (req, res) => {
       throw new CustomError('No se proporcionó la pregunta', 400)
     }
 
+    const categories = await getCategories()
+
     const venvPython = config.get('venvPython')
     const pythonPath = resolve(dirPath, `../../ciudadano_digital/${venvPython}`)
     const servicePath = resolve(dirPath, '../../services/questionsService/main.py')
 
     const chat = !chatId ? undefined : await getChatById({ chatId })
+    const historial = !chatId ? [] : await getChatHistory({ chatId })
+    const resumen = !chatId ? '' : await getChatSummary({ chatId })
 
-    const pythonCommand = `"${pythonPath}" "${servicePath}" "${question}" "${chat?.nombre ?? 'undefined'}"`
+    const payload = {
+      question,
+      chat: chat?.nombre ?? 'undefined',
+      categories,
+      historial,
+      resumen,
+    }
+
+    const py = spawn(pythonPath, [servicePath])
+
+    py.stdin.write(JSON.stringify(payload))
+    py.stdin.end()
+
+    let stdout = ''
+    let stderr = ''
+
     const startTime = Date.now()
-    const { stdout, stderr } = await execAsync(pythonCommand)
 
-    if (stderr) {
-      logger.error(stderr, { title: 'Error al ejecutar Python' })
-      throw new CustomError('No se pudo obtener la respuesta')
-    }
+    py.stdout.on('data', (data) => (stdout += data))
+    py.stderr.on('data', (data) => (stderr += data))
 
-    let responseData
-    try {
-      responseData = JSON.parse(stdout)
-    } catch (parseErr) {
-      logger.error(parseErr, { title: 'Error al parsear la respuesta de Python' })
-      throw new CustomError('Respuesta inválida del servicio Python')
-    }
+    py.on('close', async (code) => {
+      if (stderr || code !== 0) {
+        logger.error(stderr, { title: 'Error al ejecutar Python' })
+        return res.status(500).json({ error: 'No se pudo obtener la respuesta' })
+      }
 
-    logger.info(responseData, { title: 'Respuesta del servicio Python' })
+      let responseData
+      try {
+        responseData = JSON.parse(stdout)
+      } catch (e) {
+        logger.error(`${stdout} || ${e.message}`, { title: 'Respuesta inválida de Python' })
+        return res.status(500).json({ error: 'Respuesta inválida del servicio Python' })
+      }
 
-    const elapsedMs = Date.now() - startTime
+      const elapsedMs = Date.now() - startTime
+      const { response, reference, _, category, chatName, resumen: nuevoResumen } = responseData
 
-    const { response, reference, question: questionPy, category, chatName } = responseData
+      let newChat = null
+      if (!chatId) {
+        newChat = await createChatModel({
+          userId: sub,
+          name: chatName,
+        })
+      }
 
-    let newChat = null
+      await getCategoryByDescription(category)
 
-    if (!chatId)
-      newChat = await createChatModel({
-        userId: sub,
-        name: chatName,
+      const message = await createMessageModel({
+        content: response,
+        source: 'assistant',
+        reference,
+        chatId: newChat?.chatid ?? chatId,
+        responseTime: elapsedMs,
       })
 
-    logger.info(questionPy, { title: 'Pregunta enviada' })
-    logger.info(category, { title: 'Categoría Recibida' })
+      if (nuevoResumen) {
+        await insertNewSummary({
+          userId: sub,
+          chatId: newChat?.chatid ?? chatId,
+          content: nuevoResumen,
+        })
+      }
 
-    const responseTime = elapsedMs
-    const message = await createMessageModel({
-      content: response,
-      source: 'assistant',
-      reference,
-      chatId: newChat?.chatid ?? chatId,
-      responseTime: responseTime,
-    })
-
-    if (!message) throw new CustomError('Ocurrió un error al guardar el mensaje', 500)
-
-    return res.status(201).json({
-      message: 'Respuesta obtenida.',
-      newChat: newChat !== null,
-      chatMessage: message,
+      return res.status(201).json({
+        message: 'Respuesta obtenida.',
+        newChat: newChat !== null,
+        chatMessage: message,
+      })
     })
   } catch (err) {
     logger.error(err.message || err, { title: 'Error en getResponse' })

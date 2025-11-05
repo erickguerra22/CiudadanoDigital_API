@@ -1,6 +1,17 @@
 import { getConnection } from '../../db/connection.js'
 import CustomError from '../../utils/customError.js'
 
+export const getCategories = async () => {
+  const pool = await getConnection()
+
+  const query = `SELECT descripcion FROM Categoria;`
+
+  const { rows } = await pool.query(query)
+
+  if (!rows || rows.length === 0) return []
+  return rows.map((r) => r.descripcion)
+}
+
 export const getCategoryByDescription = async (description) => {
   const pool = await getConnection()
 

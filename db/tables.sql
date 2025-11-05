@@ -1,5 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+DROP TABLE IF EXISTS ResumenChat;
 DROP TABLE IF EXISTS Documento;
 DROP TABLE IF EXISTS Sesion;
 DROP TABLE IF EXISTS CodigoRecuperacion;
@@ -48,7 +49,7 @@ ALTER TABLE Mensaje
 ALTER COLUMN chatId DROP NOT NULL;
 
 ALTER TABLE Mensaje ADD COLUMN IF NOT EXISTS assigned BOOLEAN default false;
-ALTER TABLE Mensaje ADD COLUMN IF NOT EXISTS reference VARCHAR(500) default 'N/A';
+ALTER TABLE Mensaje ADD COLUMN IF NOT EXISTS reference TEXT default 'N/A';
 ALTER TABLE Mensaje
 ALTER COLUMN reference DROP DEFAULT;
 ALTER TABLE Mensaje ADD COLUMN IF NOT EXISTS responseTime BIGINT default NULL;
@@ -104,3 +105,16 @@ ALTER TABLE Documento DROP COLUMN source;
 ALTER TABLE Documento ADD COLUMN title VARCHAR(200);
 ALTER TABLE Documento ADD COLUMN author VARCHAR(200);
 ALTER TABLE Documento ADD COLUMN year INT;
+
+CREATE TABLE ResumenChat (
+    userId INT NOT NULL,
+    chatId INT NOT NULL,
+    content TEXT NOT NULL,
+    PRIMARY KEY (userId, chatId),
+    CONSTRAINT fk_resChat_usuario FOREIGN KEY (userId)
+        REFERENCES Usuario(userId)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_resChat_chat FOREIGN KEY (chatId)
+        REFERENCES Chat(chatId)
+        ON DELETE CASCADE
+);

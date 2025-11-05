@@ -6,13 +6,23 @@ select * from Chat;
 
 select * from Usuario;
 
+select * from ResumenChat;
+
+select email||', '||names as test from Usuario;
+
 select * from Documento order by documentid;
 
 delete from Documento where documentid != 30
 
-SELECT * FROM Usuario
+SELECT * FROM Categoria
 
-select * from Chat;
+DELETE FROM Categoria;
+
+SELECT * from Categoria;
+SELECT * from Chat;
+SELECT * from Mensaje;
+
+delete from chat
 -- "Formación ciudadana para fortalecer la democracia"
 
 SELECT 
@@ -56,3 +66,11 @@ SELECT
     FROM Usuario
     WHERE userId = 1
     LIMIT 1
+
+
+
+SELECT source||'-'||content as message
+      FROM Mensaje
+    WHERE chatid = 31
+    ORDER BY timestamp DESC
+    LIMIT 5

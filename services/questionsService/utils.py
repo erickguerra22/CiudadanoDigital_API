@@ -10,27 +10,28 @@ EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 LLM_MODEL = os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini")
 INDEX_NAME = os.getenv("PINECONE_INDEX", "ciudadano-digital")
 TOP_K = int(os.getenv("PINECONE_TOP_K", 5))
+SIMILARITY_THRESHOLD = os.getenv("SIMILARITY_THRESHOLD", 0.8)
 
 openaiClient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 pineconeClient = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 index = pineconeClient.Index(INDEX_NAME)
 
 
-def classify_query_category(query: str, categories=["Ética", " Civismo", "Convivencia", "Responsabilidad", "Justicia", "Participación ciudadana"]) -> str:
+def classify_query_category(query: str, categories=list) -> str:
     prompt = f"""
     Clasifica la siguiente pregunta en una de estas categorías:
-    {categories}.
+    {categories}
+    Si no coincide con ninguna, sugiere una nueva.
     Responde SOLO con el nombre de la categoría.
 
     Pregunta: {query}
     """
     try:
         response = openaiClient.chat.completions.create(
-            model="gpt-4o-mini",
+            model=LLM_MODEL,
             messages=[{"role": "user", "content": prompt}]
         )
-        category = response.choices[0].message.content.strip()
-        return category
+        return response.choices[0].message.content.strip()
     except Exception:
         return None
 
@@ -51,6 +52,17 @@ def retrieve_context(query: str, category_filter: str=None, top_k: int=TOP_K):
         filter=filter_obj,
         namespace="ciudadania"
     )
+    
+    if not results.matches and category_filter:
+        results = index.query(
+            vector=query_emb,
+            top_k=top_k,
+            include_metadata=True,
+            namespace="ciudadania"
+        )
+        
+    if not results.matches or all(float(m["score"]) < float(SIMILARITY_THRESHOLD) for m in results.matches):
+        return [[], []]
 
     context_fragments = []
     sources = []
@@ -78,26 +90,40 @@ def retrieve_context(query: str, category_filter: str=None, top_k: int=TOP_K):
     return [context_fragments, sources]
 
 
-def build_rag_prompt(question: str, context_fragments: list):
+def build_rag_prompt(question: str, context_fragments: list, historial:list, resumen:str):
     """Construye el prompt combinando contexto y pregunta."""
     context_text = "\n\n".join(context_fragments)
     prompt = f"""
-    Tu rol es el de un asistente digital dedicado al acompañamiento informal en educación enfocada en valores morales, formación ciudadana y civismo, para estudiantes de entre 14 y 20 años de edad. Se te permite ser atento con los usuarios, responder saludos, agradecimientos y despedidas de manera cordial. Pero cuando se te haga una pregunta o consutla, debes responder utilizando SOLAMENTE el contexto proporcionado a continuación.
-    
-Usa el siguiente contexto para analizar y responder a la consulta de manera clara y completa. Sé estricto con utilizar SOLAMENTE el contexto dado para sustentar tu respuesta, sin hacer suposiciones externas, pero sí un análisis profundo para dar una respuesta útil y bien fundamentada.
-Si el contexto no es suficiente para responder la pregunta, simplemente dí que no puedes responder.
+Eres un asistente educativo usando método socrático para estudiantes de 14 a 20 años.
 
-Cualquier solicitud que no esté relacionada con el contexto debe ser respondida con "No puedo responder."
+Puedes razonar y guiar a partir de los conceptos presentes en el contexto,
+historial y resumen, aunque la situación exacta del usuario no esté escrita.
+No inventes datos, pero sí puedes guiar la reflexión con las ideas generales.
 
-Al final, en una sección diferenciada como "::Preguntas::", debes darme una serie de preguntas sugeridas para continuar con el tema de la conversación (no más de 3 preguntas).
+Si el contexto NO contiene información directamente relacionada
+con la pregunta realizada,
+responde exactamente:
+"No puedo responder."
 
-Contexto:
+Está prohibido inventar o inferir contenido fuera del contexto.
+
+HISTORIAL:
+{historial}
+
+RESUMEN:
+{resumen}
+
+CONTEXTO:
 {context_text}
 
 Pregunta:
 {question}
 
-Respuesta:
+Formato de respuesta:
+- Análisis breve basado en contexto (1-2 frases)
+- ::Preguntas:: con hasta 3 preguntas socráticas que deben estar redactadas desde primera persona, no como si se estuvieran preguntando a alguien más (Ejemplo: ¿Cómo puedo yo implementar lo que me dices?)
+
+Idioma: español.
 """
     return prompt
 
@@ -115,28 +141,31 @@ def ask_llm(prompt: str):
 def get_chat_name(question:str):
     """Define el nombre del chat si no se ha definido"""
     prompt = f"""
-    Tengo la siguiente pregunta:
-    {question}.
-    NO NECESITO QUE LA RESPONDAS. Asígnale un nombre al chat en base a esta primera pregunta.
-    
-    Responde SOLO con el nombre del chat.
+    Tengo esta pregunta: {question}
+    NO la respondas.
+    Dame un nombre breve y claro para el chat.
+    Responde SOLO el nombre.
     """
     try:
-        response = openaiClient.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        chatName = response.choices[0].message.content.strip()
-        return chatName
+        return ask_llm(prompt)
     except Exception:
-        return None
+        return "Nuevo Chat"
 
 
-def rag_query(question: str, category: str=None,):
+def get_new_resumen(historial:list):
+    prompt = f"""Resume de forma compacta los siguientes mensajes: 
+    {historial}"""
+    return ask_llm(prompt)
+
+
+def rag_query(question: str, category: str=None, historial: list=[], resumen: str=None):
     """Pipeline completo RAG: recuperar contexto, generar prompt, obtener respuesta."""
-    [context_fragments, sources] = retrieve_context(question, category_filter=category)
+    context_fragments, sources = retrieve_context(question, category_filter=category)
     if not context_fragments:
-        return ["⚠️ No hay información suficiente en la base de datos para responder esta pregunta.", []]
-    prompt = build_rag_prompt(question, context_fragments)
+        return ["⚠️ No hay información suficiente en la base de datos para responder esta pregunta.", [], None]
+    
+    new_resumen = get_new_resumen(historial) if len(historial) >= 5 else None
+    
+    prompt = build_rag_prompt(question, context_fragments, historial, resumen)
     answer = ask_llm(prompt)
-    return [answer, sources]
+    return [answer, sources, new_resumen]

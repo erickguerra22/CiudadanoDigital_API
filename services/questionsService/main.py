@@ -15,29 +15,30 @@ INDEX_NAME = os.getenv("PINECONE_INDEX", "ciudadano-digital")
 TOP_K = os.getenv("PINECONE_TOP_K", 5)
 
 
-def main(question: str):
-    category = classify_query_category(question)
-    chatName = get_chat_name(question) if(chat == 'undefined') else chat
-    [respuesta, referencias] = rag_query(question, category)
+def main(question, categories, historial, resumen, chat):
+    category = classify_query_category(question, categories)
+    chatName = chat if chat != "undefined" else get_chat_name(question)
+    
+    respuesta, referencias, nuevo_resumen = rag_query(question, category, historial, resumen)
     return {
         "response": respuesta,
         "reference": None if respuesta == "No puedo responder." else ", ".join(list(dict.fromkeys(referencias))),
         "question":question,
         "category":category,
         "chatName":chatName,
+        "resumen":nuevo_resumen
         }
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Por favor, proporciona el chatId.")
-        sys.exit(1)
-    if len(sys.argv) < 2:
-        print("Por favor, proporciona la pregunta.")
-        sys.exit(1)
+    raw = sys.stdin.read()
+    data = json.loads(raw)
 
-    question = sys.argv[1]
-    chat = sys.argv[2]
-    
-    response = main(question)
+    question = data.get("question")
+    chat = data.get("chat")
+    categories = data.get("categories", [])
+    historial = data.get("historial", [])
+    resumen = data.get("resumen")
+
+    response = main(question, categories, historial, resumen, chat)
     print(json.dumps(response))
