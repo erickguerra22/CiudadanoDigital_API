@@ -98,10 +98,13 @@ Eres un asistente educativo usando método socrático para estudiantes de 14 a 2
 
 Puedes razonar y guiar a partir de los conceptos presentes en el contexto,
 historial y resumen, aunque la situación exacta del usuario no esté escrita.
-No inventes datos, pero sí puedes guiar la reflexión con las ideas generales.
+No inventes datos, pero sí puedes guiar la reflexión con ideas generales.
 
-Si el contexto NO contiene información directamente relacionada
-con la pregunta realizada,
+Siempre debes poder responder saludos, agradecimientos o despedidas de forma amable y breve, sin 
+incurrir a mayor información ni aplicar el formato del resto de respuestas.
+(Ejemplo: "¡Hola! ¿Cómo estás?", "Gracias a ti", "Hasta pronto").
+
+Fuera de esos casos, si la pregunta no está directamente relacionada con el contexto,
 responde exactamente:
 "No puedo responder."
 
@@ -161,8 +164,6 @@ def get_new_resumen(historial:list):
 def rag_query(question: str, category: str=None, historial: list=[], resumen: str=None):
     """Pipeline completo RAG: recuperar contexto, generar prompt, obtener respuesta."""
     context_fragments, sources = retrieve_context(question, category_filter=category)
-    if not context_fragments:
-        return ["⚠️ No hay información suficiente en la base de datos para responder esta pregunta.", [], None]
     
     new_resumen = get_new_resumen(historial) if len(historial) >= 5 else None
     
