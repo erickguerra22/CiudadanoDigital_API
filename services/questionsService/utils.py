@@ -10,7 +10,7 @@ EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 LLM_MODEL = os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini")
 INDEX_NAME = os.getenv("PINECONE_INDEX", "ciudadano-digital")
 TOP_K = int(os.getenv("PINECONE_TOP_K", 5))
-SIMILARITY_THRESHOLD = os.getenv("SIMILARITY_THRESHOLD", 0.8)
+SIMILARITY_THRESHOLD = os.getenv("SIMILARITY_THRESHOLD", 0.35)
 
 openaiClient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 pineconeClient = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))

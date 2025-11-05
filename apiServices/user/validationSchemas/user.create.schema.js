@@ -22,12 +22,10 @@ export const createUserSchema = Joi.object({
     }),
 
   phoneCode: Joi.string()
-    .pattern(/^\+[0-9]{1,3}$/)
-    .required()
+    .pattern(/^\+\d{1,3}(-\d{1,4})?$/)
     .messages({
       'string.base': "El campo 'phoneCode' debe ser un String.",
-      'string.pattern.base': "El campo 'phoneCode' debe tener un formato válido, por ejemplo, +502.",
-      'any.required': "El campo 'phoneCode' es obligatorio.",
+      'string.pattern.base': "El campo 'phoneCode' debe tener un formato válido, por ejemplo, +502 o +1-868.",
     }),
 
   birthdate: Joi.date().allow(null).messages({
