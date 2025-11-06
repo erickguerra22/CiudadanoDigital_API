@@ -22,7 +22,7 @@ def main(question, categories, historial, resumen, chat):
     respuesta, referencias, nuevo_resumen = rag_query(question, category, historial, resumen)
     return {
         "response": respuesta,
-        "reference": None if respuesta == "No puedo responder." else ", ".join(list(dict.fromkeys(referencias))),
+        "reference": None if respuesta == "No puedo responder." else ";;; ".join(list(dict.fromkeys(referencias))),
         "question":question,
         "category":category,
         "chatName":chatName,

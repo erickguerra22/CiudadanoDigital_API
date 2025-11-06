@@ -4,7 +4,7 @@ delete from Mensaje;
 delete from Chat;
 select * from Chat;
 
-select * from Usuario;
+delete from Usuario;
 
 select * from ResumenChat;
 
