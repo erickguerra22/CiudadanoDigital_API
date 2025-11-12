@@ -235,7 +235,7 @@ def extract_text_from_file(file_path: str) -> str:
 
 
 # INDEXACIÓN DEL DOCUMENTO
-def process_and_index_document(file_path: str, source_title: str, author: str, year: int, identifier: str, categories: list):
+def process_and_index_document(file_path: str, source_title: str, author: str, year: int, identifier: str, categories: list, minAge: int, maxAge: int):
     """Procesa e indexa un documento completo en Pinecone."""
     category = "General"
 
@@ -274,7 +274,9 @@ def process_and_index_document(file_path: str, source_title: str, author: str, y
             "year": year,
             "category": category,
             "sha1": sha1_hash,
-            "uploaded_at": datetime.now().isoformat()
+            "uploaded_at": datetime.now().isoformat(),
+            "minAge":minAge,
+            "maxAge": maxAge
         }
 
         batch.append({"id": str(uuid4()), "values": emb, "metadata": metadata})

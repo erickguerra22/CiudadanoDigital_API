@@ -36,7 +36,7 @@ def classify_query_category(query: str, categories=list) -> str:
         return None
 
 
-def retrieve_context(query: str, category_filter: str=None, top_k: int=TOP_K):
+def retrieve_context(query: str, category_filter: str=None, top_k: int=TOP_K, edad:int=None):
     """Recupera fragmentos relevantes desde Pinecone para RAG."""
     query_emb = openaiClient.embeddings.create(
         model=EMBEDDING_MODEL,
@@ -68,6 +68,25 @@ def retrieve_context(query: str, category_filter: str=None, top_k: int=TOP_K):
     sources = []
     for match in results.get("matches", []):
         meta = match["metadata"]
+        
+        min_age = meta.get("minAge")
+        max_age = meta.get("maxAge")
+        if edad is not None:
+            try:
+                min_age = int(min_age) if min_age is not None else None
+                max_age = int(max_age) if max_age is not None else None
+            except (ValueError, TypeError):
+                min_age = max_age = None
+
+            if min_age is not None and max_age is not None:
+                if not (min_age <= edad <= max_age):
+                    continue
+
+            elif min_age is not None and edad < min_age:
+                continue
+            elif max_age is not None and edad > max_age:
+                continue
+        
         fragment_text = meta.get("text", "")
         source = meta.get("source", "Desconocido")
         year = meta.get("year", "")
@@ -90,11 +109,11 @@ def retrieve_context(query: str, category_filter: str=None, top_k: int=TOP_K):
     return [context_fragments, sources]
 
 
-def build_rag_prompt(question: str, context_fragments: list, historial:list, resumen:str):
+def build_rag_prompt(question: str, context_fragments: list, historial:list, resumen:str, edad:int):
     """Construye el prompt combinando contexto y pregunta."""
     context_text = "\n\n".join(context_fragments)
     prompt = f"""
-Eres un asistente educativo que utiliza el método socrático para guiar a estudiantes de 14 a 20 años.
+Eres un asistente educativo que utiliza el método socrático para guiar a un estudiante de {edad} años.
 
 Puedes razonar y guiar únicamente a partir de los conceptos presentes en el contexto,
 historial y resumen, aunque la situación exacta del usuario no esté escrita.
@@ -134,6 +153,7 @@ Un análisis breve basado en el contexto (1-2 frases)
   (Ejemplo: ¿Cómo puedo yo aplicar esto en mi vida diaria?)
 
 Idioma: español.
+IMPORTANTE: Adapta tu redacción para responder a una persona de {edad} años.
 """
 
     return prompt
@@ -169,12 +189,12 @@ def get_new_resumen(historial:list):
     return ask_llm(prompt)
 
 
-def rag_query(question: str, category: str=None, historial: list=[], resumen: str=None):
+def rag_query(question: str, category: str=None, historial: list=[], edad: int=13, resumen: str=None):
     """Pipeline completo RAG: recuperar contexto, generar prompt, obtener respuesta."""
-    context_fragments, sources = retrieve_context(question, category_filter=category)
+    context_fragments, sources = retrieve_context(question, category_filter=category,edad=edad)
     
     new_resumen = get_new_resumen(historial) if len(historial) >= 5 else None
     
-    prompt = build_rag_prompt(question, context_fragments, historial, resumen)
+    prompt = build_rag_prompt(question, context_fragments, historial, resumen, edad)
     answer = ask_llm(prompt)
     return [answer, sources, new_resumen]

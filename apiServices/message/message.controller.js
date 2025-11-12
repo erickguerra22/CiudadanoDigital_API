@@ -7,6 +7,7 @@ import { spawn } from 'child_process'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { getCategories, getCategoryByDescription } from '../document/document.model.js'
+import { getUserById } from '../user/user.model.js'
 
 const filePath = fileURLToPath(import.meta.url)
 const dirPath = dirname(filePath)
@@ -104,6 +105,20 @@ export const getResponse = async (req, res) => {
     }
 
     const categories = await getCategories()
+    const user = await getUserById(sub)
+
+    let edad = null
+    if (user.birthdate) {
+      const nacimiento = new Date(user.birthdate)
+      if (!isNaN(nacimiento)) {
+        const hoy = new Date()
+        edad = hoy.getFullYear() - nacimiento.getFullYear()
+        const mesDiff = hoy.getMonth() - nacimiento.getMonth()
+        if (mesDiff < 0 || (mesDiff === 0 && hoy.getDate() < nacimiento.getDate())) {
+          edad--
+        }
+      }
+    }
 
     const venvPython = config.get('venvPython')
     const pythonPath = resolve(dirPath, `../../ciudadano_digital/${venvPython}`)
@@ -119,6 +134,7 @@ export const getResponse = async (req, res) => {
       categories,
       historial,
       resumen,
+      edad: Number(edad) || 0,
     }
 
     const py = spawn(pythonPath, [servicePath])

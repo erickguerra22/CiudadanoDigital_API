@@ -3,47 +3,33 @@ import json
 from utils import *
 
 
-def main(filepath: str, filename: str, author: str, year: str, remotepath: str, categories: list):
+def main(filepath: str, filename: str, author: str, year: str, remotepath: str, categories: list, minAge: int, maxAge:int):
     return process_and_index_document(
         file_path=filepath,
         source_title=filename,
         author=author,
         year=year,
         identifier=remotepath,
-        categories=categories
+        categories=categories,
+        minAge=minAge,
+        maxAge=maxAge
     )
 
 
-if __name__ == "__main__":
-    if len(sys.argv) < 6:
-        print("Por favor, proporciona la ruta remota del documento.")
-        sys.exit(1)
-    if len(sys.argv) < 5:
-        print("Por favor, proporciona el año del documento ('S/F' si no lo tienes).")
-        sys.exit(1)
-    if len(sys.argv) < 4:
-        print("Por favor, proporciona el autor del documento ('S/D' si no lo tienes).")
-        sys.exit(1)
-    if len(sys.argv) < 3:
-        print("Por favor, proporciona el nombre del documento.")
-        sys.exit(1)
-    if len(sys.argv) < 2:
-        print("Por favor, proporciona la ruta al documento.")
-        sys.exit(1)
-
-    if len(sys.argv) >= 7:
-        categories = sys.argv[6]
-    else:
-        categories = ""
-
-    categories = categories.split(",") if categories and categories != "" else []
-    filePath = sys.argv[1]
-    fileName = sys.argv[2]
-    author = sys.argv[3]
-    year = sys.argv[4]
-    remotePath = sys.argv[5]
+if __name__ == "__main__":    
+    raw = sys.stdin.read()
+    data = json.loads(raw)
     
-    result = main(filePath, fileName, author, year, remotePath, categories)
+    filePath = data.get("filePath")
+    fileName = data.get("fileName")
+    author = data.get("author")
+    year = data.get("year")
+    remotePath = data.get("remotePath")
+    categories = data.get("categories")
+    minAge = data.get("minAge")
+    maxAge = data.get("maxAge")
+    
+    result = main(filePath, fileName, author, year, remotePath, categories, minAge, maxAge)
     
     print(json.dumps(result))
     

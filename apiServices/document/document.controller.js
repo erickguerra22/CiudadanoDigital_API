@@ -18,7 +18,7 @@ const logger = new Logger({ filename: 'document-controller.log' })
 export const uploadDocument = async (req, res) => {
   try {
     const { sub, role, email } = req.user
-    const { filename: docname, author, year } = req.body
+    const { filename: docname, author, year, minAge, maxAge } = req.body
     const file = req.file
 
     if (role != 'admin') throw new CustomError('No tienes permiso para subir documentos', 403)
@@ -49,31 +49,46 @@ export const uploadDocument = async (req, res) => {
         const pythonPath = resolve(dirPath, `../../ciudadano_digital/${venvPython}`)
         const servicePath = resolve(dirPath, '../../services/processDocumentService/main.py')
 
-        const commandArgs = [servicePath, localPath, docname, author, year, fileName, categories.join(',')]
+        // const commandArgs = [servicePath, localPath, docname, author, year, fileName, categories.join(','), minAge, maxAge]
 
-        const python = spawn(pythonPath, commandArgs, {
-          stdio: ['ignore', 'pipe', 'pipe'],
-          detached: false,
-          env: { ...process.env },
-          shell: false,
-        })
+        // const python = spawn(pythonPath, commandArgs, {
+        //   stdio: ['ignore', 'pipe', 'pipe'],
+        //   detached: false,
+        //   env: { ...process.env },
+        //   shell: false,
+        // })
+
+        const payload = {
+          filePath: localPath,
+          fileName: docname,
+          author,
+          year,
+          remotePath: fileName,
+          categories,
+          minAge,
+          maxAge,
+        }
+
+        const py = spawn(pythonPath, [servicePath])
+        py.stdin.write(JSON.stringify(payload))
+        py.stdin.end()
 
         let output = ''
         let errorOutput = ''
-        python.stdout.on('data', (data) => {
+        py.stdout.on('data', (data) => {
           output += data.toString()
         })
 
-        python.stderr.on('data', (data) => {
+        py.stderr.on('data', (data) => {
           errorOutput += data.toString()
           logger.error(data.toString(), { title: 'Python stderr' })
         })
 
-        python.on('error', (error) => {
+        py.on('error', (error) => {
           logger.error(error.message, { title: 'Spawn error' })
         })
 
-        python.on('close', async (code) => {
+        py.on('close', async (code) => {
           // Limpiar archivo temporal
           try {
             fs.unlinkSync(localPath)

@@ -15,11 +15,11 @@ INDEX_NAME = os.getenv("PINECONE_INDEX", "ciudadano-digital")
 TOP_K = os.getenv("PINECONE_TOP_K", 5)
 
 
-def main(question, categories, historial, resumen, chat):
+def main(question, categories, historial, resumen, chat, edad):
     category = classify_query_category(question, categories)
     chatName = chat if chat != "undefined" else get_chat_name(question)
     
-    respuesta, referencias, nuevo_resumen = rag_query(question, category, historial, resumen)
+    respuesta, referencias, nuevo_resumen = rag_query(question, category, historial, edad, resumen)
     return {
         "response": respuesta,
         "reference": None if respuesta == "No puedo responder." else ";;; ".join(list(dict.fromkeys(referencias))),
@@ -39,6 +39,7 @@ if __name__ == "__main__":
     categories = data.get("categories", [])
     historial = data.get("historial", [])
     resumen = data.get("resumen")
+    edad = int(data.get("edad"))
 
-    response = main(question, categories, historial, resumen, chat)
+    response = main(question, categories, historial, resumen, chat, edad)
     print(json.dumps(response))
