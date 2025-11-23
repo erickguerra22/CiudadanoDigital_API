@@ -149,7 +149,7 @@ PREGUNTA:
 
 Formato de respuesta (solo si hay contexto relacionado):
 Un análisis breve basado en el contexto (1-2 frases)
-::Preguntas:: con hasta 3 preguntas socráticas redactadas desde primera persona
+::Preguntas:: con hasta 3 preguntas socráticas redactadas desde primera persona basadas UNICAMENTE en el contexto obtenido
   (Ejemplo: ¿Cómo puedo yo aplicar esto en mi vida diaria?)
 
 Idioma: español.

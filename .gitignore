@@ -143,3 +143,5 @@ vite.config.ts.timestamp-*
 
 tmp/
 services/processDocumentService/tests/
+services/processDocumentService/__pycache__/
+services/questionService/__pycache__/
